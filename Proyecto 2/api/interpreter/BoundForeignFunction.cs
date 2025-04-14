@@ -2,9 +2,9 @@ public class BoundForeignFunction : Invocable
 {
     private readonly ForeignFunction funcionOriginal;
     private readonly Instance instancia;
-    private readonly CompilerVisitor visitor;
+    private readonly InterpreterVisitor visitor;
 
-    public BoundForeignFunction(ForeignFunction funcionOriginal, Instance instancia, CompilerVisitor visitor)
+    public BoundForeignFunction(ForeignFunction funcionOriginal, Instance instancia, InterpreterVisitor visitor)
     {
         this.funcionOriginal = funcionOriginal;
         this.instancia = instancia;
@@ -13,7 +13,7 @@ public class BoundForeignFunction : Invocable
 
     public int Arity() => funcionOriginal.Arity();
 
-    public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor)
+    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor)
     {
         var newEnv = new Environment(funcionOriginal.closure);
 

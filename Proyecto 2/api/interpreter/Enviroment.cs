@@ -39,9 +39,9 @@ public void DeclareVariable(string id, ValueWrapper value, Type tipoEsperado = n
     int line = token?.Line ?? 0;
     int column = token?.Column ?? 0;
 
-    if (CompilerVisitor.GlobalSymbolTable != null) {
+    if (InterpreterVisitor.GlobalSymbolTable != null) {
         string scope = this.parent == null ? "Global" : "Local";
-        CompilerVisitor.GlobalSymbolTable.AddSymbol(id, "Variable", dataType, scope, line, column);
+        InterpreterVisitor.GlobalSymbolTable.AddSymbol(id, "Variable", dataType, scope, line, column);
         Console.WriteLine(" Variable " +id +"registrada en la tabla de símbolos con tipo ", dataType , "en línea " ,line," columna" ,column);
     } else {
         Console.WriteLine(" No se pudo registrar la variable "+id +" porque la tabla de símbolos no está inicializada.");

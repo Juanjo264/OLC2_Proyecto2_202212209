@@ -31,7 +31,7 @@ public class StructType : Invocable {
         return constructor?.Arity() ?? 0;
     }
 
-    public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor) {
+    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor) {
         var instance = new Instance(this, MainProperty);
 
         foreach (var prop in Props) {

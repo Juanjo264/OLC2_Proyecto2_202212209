@@ -6,9 +6,9 @@ public class ForeignFunction : Invocable {
     public Type tipoRetorno;
     public List<Type> tiposParametros = new List<Type>();
 
-private CompilerVisitor visitor; 
+private InterpreterVisitor visitor; 
 
-public ForeignFunction(Environment closure, LanguageParser.FuncdlcContext context, Type tipoRetorno, CompilerVisitor visitor)
+public ForeignFunction(Environment closure, LanguageParser.FuncdlcContext context, Type tipoRetorno, InterpreterVisitor visitor)
 {
     this.closure = closure;
     this.context = context;
@@ -26,7 +26,7 @@ public ForeignFunction(Environment closure, LanguageParser.FuncdlcContext contex
         return tiposParametros.Count;
     }
 
-public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor) {
+public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor) {
     if (args.Count != tiposParametros.Count) {
         throw new SemanticError($"Error: Se esperaban {tiposParametros.Count} argumentos, pero se recibieron {args.Count}.", context.Start);
     }
@@ -86,7 +86,7 @@ return visitor.defaultValue;
 
 
 
-public Invocable Bind(Instance instance, CompilerVisitor visitor)
+public Invocable Bind(Instance instance, InterpreterVisitor visitor)
 {
     return new BoundForeignFunction(this, instance, visitor);
 }

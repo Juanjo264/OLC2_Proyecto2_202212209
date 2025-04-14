@@ -1,4 +1,4 @@
-// Generated from /home/juanjo/compi2/OLC2_Proyecto1_202212209/Proyecto 1/api/Language.g4 by ANTLR 4.13.1
+// Generated from c:/Users/juanj/Desktop/Compi 2/P2/OLC2_Proyecto2_202212209/Proyecto 2/api/Language.g4 by ANTLR 4.13.1
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Token;

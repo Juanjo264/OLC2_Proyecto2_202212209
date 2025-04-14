@@ -49,20 +49,23 @@ namespace api.Controllers
 
             try
             {
-                CompilerVisitor.GlobalSymbolTable = new SymbolTable();
+                InterpreterVisitor.GlobalSymbolTable = new SymbolTable();
 
                 var (_, tree, syntaxErrorListener, lexicalErrorListener) = ParseCode(request.code);
-                var visitor = new CompilerVisitor();
-                visitor.Visit(tree);
-                visitor.EjecutarMain(visitor, tree);
+                var interpreter = new InterpreterVisitor();
+                interpreter.Visit(tree);
+                interpreter.EjecutarMain(interpreter, tree);
 
-                Console.WriteLine(" Salida de ejecución: "+ visitor.output);
+                Console.WriteLine(" Salida de ejecución: "+ interpreter.output);
 
                 var errors = new List<Error>();
                 errors.AddRange(syntaxErrorListener.Errors);
                 errors.AddRange(lexicalErrorListener.Errors);
 
-                return Ok(new { result = visitor.output ?? "", errors });
+                var compiler = new CompilerVisitor();
+                compiler.Visit(tree);
+
+                return Ok(new { result = compiler.c.ToString(), errors });
             }
             catch (RecognitionException ex)
             {
@@ -85,7 +88,7 @@ namespace api.Controllers
 
                 var predefinedVariables = new HashSet<string> { "time", "strconv.Atoi", "strconv.ParseFloat", "reflect.TypeOf", "slices.Index", "strings.Join", "len", "append" };
 
-                var filteredSymbols = CompilerVisitor.GlobalSymbolTable.Symbols
+                var filteredSymbols = InterpreterVisitor.GlobalSymbolTable.Symbols
                     .Where(symbol => !predefinedVariables.Contains(symbol.ID))
                     .ToList();
 

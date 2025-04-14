@@ -55,7 +55,7 @@ public class TimeEmbeded : Invocable
     public int Arity(){
       return 0;
     }
-    public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor){
+    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor){
         return new StringValue(DateTime.Now.ToString());
     }
 }
@@ -64,7 +64,7 @@ public class AtoiEmbeded : Invocable
 {
     public int Arity() => 1; 
 
-    public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor)
+    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor)
     {
         if (args[0] is not StringValue str)
         {
@@ -83,7 +83,7 @@ public class ParseFloatEmbeded : Invocable
 {
     public int Arity() => 1; 
 
-    public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor)
+    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor)
     {
         if (args[0] is not StringValue str)
         {
@@ -104,7 +104,7 @@ public class TypeOfEmbeded : Invocable
 {
     public int Arity() => 1; 
 
-    public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor)
+    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor)
     {
         ValueWrapper valor = args[0];
 
@@ -141,7 +141,7 @@ public class IndexEmbeded : Invocable
 {
     public int Arity() => 2; // slice, valor a buscar
 
-    public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor)
+    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor)
     {
         if (args[0] is not SliceValue slice)
         {
@@ -167,7 +167,7 @@ public class JoinEmbeded : Invocable
 {
     public int Arity() => 2; // slice de strings, separador
 
-    public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor)
+    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor)
     {
         if (args[0] is not SliceValue slice)
         {
@@ -199,7 +199,7 @@ public class LenEmbeded : Invocable
 {
     public int Arity() => 1; // slice
 
-    public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor)
+    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor)
     {
         if (args[0] is not SliceValue slice)
         {
@@ -215,7 +215,7 @@ public class AppendEmbeded : Invocable
 {
     public int Arity() => 2; // slice, elementos a agregar
 
-    public ValueWrapper Invoke(List<ValueWrapper> args, CompilerVisitor visitor)
+    public ValueWrapper Invoke(List<ValueWrapper> args, InterpreterVisitor visitor)
     {
         if (args[0] is not SliceValue slice)
         {

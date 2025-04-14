@@ -13,7 +13,7 @@ public class Instance {
         Properties[name] = value;
     }
 
-    public ValueWrapper Get(string name, Antlr4.Runtime.IToken token, CompilerVisitor visitor)
+    public ValueWrapper Get(string name, Antlr4.Runtime.IToken token, InterpreterVisitor visitor)
     {
         if (Properties.ContainsKey(name)) {
             return Properties[name];
