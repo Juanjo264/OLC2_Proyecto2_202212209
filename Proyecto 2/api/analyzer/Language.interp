@@ -39,7 +39,7 @@ null
 '++'
 '--'
 'nil'
-'fmt.Println'
+'print'
 'int'
 'float64'
 'string'

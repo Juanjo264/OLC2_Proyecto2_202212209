@@ -120,7 +120,7 @@ asignacion:	ID signo=(MASIGUAL | MENOSIGUAL) expr #incremento
 					| expr IGUAL expr (';')? #asignarVar 
 					;
 
-print: 'fmt.Println' PIZQ impresiones PDER ;
+print: 'print' PIZQ impresiones PDER ;
 
 impresiones: impresiones ',' expr
 	| expr;

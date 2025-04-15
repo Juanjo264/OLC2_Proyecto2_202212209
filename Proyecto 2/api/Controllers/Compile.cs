@@ -54,7 +54,7 @@ namespace api.Controllers
                 var (_, tree, syntaxErrorListener, lexicalErrorListener) = ParseCode(request.code);
                 var interpreter = new InterpreterVisitor();
                 interpreter.Visit(tree);
-                interpreter.EjecutarMain(interpreter, tree);
+                //interpreter.EjecutarMain(interpreter, tree);
 
                 Console.WriteLine(" Salida de ejecución: "+ interpreter.output);
 
