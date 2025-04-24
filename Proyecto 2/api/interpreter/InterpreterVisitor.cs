@@ -579,16 +579,21 @@ public override ValueWrapper VisitLogicos(LanguageParser.LogicosContext context)
     ValueWrapper right = Visit(context.expr(1));
     var op = context.op.Text;
 
-    if (left is SliceValue sliceLeft) {
+    if (left is SliceValue sliceLeft)
         left = new BoolValue(sliceLeft.Values.Count > 0);
-    }
-    if (right is SliceValue sliceRight) {
-        right = new BoolValue(sliceRight.Values.Count > 0);
-    }
 
-    if (left is not BoolValue || right is not BoolValue) {
+    if (right is SliceValue sliceRight)
+        right = new BoolValue(sliceRight.Values.Count > 0);
+
+    // Convertir IntValue a BoolValue si aplica
+    if (left is IntValue intLeft)
+        left = new BoolValue(intLeft.Value != 0);
+
+    if (right is IntValue intRight)
+        right = new BoolValue(intRight.Value != 0);
+
+    if (left is not BoolValue || right is not BoolValue)
         throw new SemanticError($"Operación lógica no válida entre tipos: {left.GetType()} y {right.GetType()}", context.Start);
-    }
 
     return (left, right, op) switch {
         (BoolValue l, BoolValue r, "&&") => new BoolValue(l.Value && r.Value),

@@ -2,6 +2,7 @@
 using System.Reflection.Metadata;
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
+using System.Globalization;
 
 public class Symbol
 {
@@ -72,6 +73,7 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
         {
             Visit(context.impresiones()); 
         }
+
         c.Comment("visiting expression");
         Visit(context.expr()); 
         c.Comment("Popping value to print");
@@ -79,15 +81,21 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
 
         if (value.Type == StackObject.StackObjectType.Int)
         {
-            c.PrintInteger(Register.X0); // Print the integer value
-        }else if(value.Type == StackObject.StackObjectType.String)
+            c.PrintInteger(Register.X0);
+        }
+        else if (value.Type == StackObject.StackObjectType.String)
         {
-            c.PrintString(Register.X0); // Print the string value
+            c.PrintString(Register.X0);
+        }
+        else if (value.Type == StackObject.StackObjectType.Float)
+        {
+           
+            c.Fmov(Register.X0, Register.D0);
+            c.PrintFloat(Register.D0);
         }
 
         return null;
     }
-
     public override Object? VisitIdexpresion(LanguageParser.IdexpresionContext context)
     {
         var id = context.ID().GetText();
@@ -125,44 +133,157 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
         return null;
     }
 
-    public override Object? VisitMulDiv(LanguageParser.MulDivContext context)
+public override object? VisitMulDiv(LanguageParser.MulDivContext context)
+{
+    c.Comment("Operación de multiplicación o división");
+    var operation = context.op.Text;
+
+    // Visita operandos
+    Visit(context.expr(0));
+    Visit(context.expr(1));
+
+    var right = c.PopObject(Register.X1);
+    var left = c.PopObject(Register.X0);
+
+    // detect float
+    bool isFloat = left.Type == StackObject.StackObjectType.Float || right.Type == StackObject.StackObjectType.Float;
+    var resultType = isFloat ? StackObject.StackObjectType.Float : StackObject.StackObjectType.Int;
+
+    if (isFloat)
     {
-        return null;
+        // Convierte operandos si es necesario
+        if (left.Type == StackObject.StackObjectType.Int)
+            c.Scvtf(Register.D0, Register.X0);
+        else
+            c.Fmov(Register.D0, Register.X0);
+
+        if (right.Type == StackObject.StackObjectType.Int)
+            c.Scvtf(Register.D1, Register.X1);
+        else
+            c.Fmov(Register.D1, Register.X1);
+
+        // Aplica operación flotante
+        if (operation == "*")
+            c.Fmul(Register.D0, Register.D0, Register.D1);
+        else if (operation == "/")
+            c.Fdiv(Register.D0, Register.D0, Register.D1);
+
+        c.instructions.Add("STR D0, [SP, #-8]!"); // Push float
+    }
+    else
+    {
+        // Aplica operación entera
+        if (operation == "*")
+            c.Mul(Register.X0, Register.X0, Register.X1);
+        else if (operation == "/")
+            c.Div(Register.X0, Register.X0, Register.X1);
+
+        c.Push(Register.X0);
     }
 
-    public override Object? VisitAddSub(LanguageParser.AddSubContext context)
+    // Empuja objeto resultante a la pila virtual
+    var resultObject = new StackObject
     {
-        c.Comment("Add/Subtract operation");
-        var operation = context.op.Text;
+        Type = resultType,
+        Length = 8,
+        Depth = c.CurrentDepth,
+        Id = null
+    };
+    c.PushObject(resultObject);
 
-        c.Comment($"Operation left: {operation}");
-        Visit(context.expr(0));
-        c.Comment($"Operation right: {operation}");
-        Visit(context.expr(1));
+    return null;
+}
 
-        var right = c.PopObject(Register.X1); // Pop the second operand into X1
-        var left = c.PopObject(Register.X0); // Pop the first operand into X0
+public override object? VisitAddSub(LanguageParser.AddSubContext context)
+{
+    c.Comment("Operación de suma o resta");
+    var operation = context.op.Text;
 
-        //gettype
+    Visit(context.expr(0));
+    Visit(context.expr(1));
+
+    var right = c.PopObject(Register.X1);
+    var left = c.PopObject(Register.X0);
+
+    bool isFloat = left.Type == StackObject.StackObjectType.Float || right.Type == StackObject.StackObjectType.Float;
+    var resultType = isFloat ? StackObject.StackObjectType.Float : StackObject.StackObjectType.Int;
+
+    if (isFloat)
+    {
+        if (left.Type == StackObject.StackObjectType.Int)
+            c.Scvtf(Register.D0, Register.X0);
+        else
+            c.Fmov(Register.D0, Register.X0);
+
+        if (right.Type == StackObject.StackObjectType.Int)
+            c.Scvtf(Register.D1, Register.X1);
+        else
+            c.Fmov(Register.D1, Register.X1);
 
         if (operation == "+")
-        {
-            c.Add(Register.X0, Register.X0, Register.X1); // X0 = X0 + X1
-        }
+            c.Fadd(Register.D0, Register.D0, Register.D1);
         else if (operation == "-")
-        {
-            c.Sub(Register.X0, Register.X0, Register.X1); // X0 = X0 - X1
-        }
-        c.Comment($"pushing result");
-        c.Push(Register.X0); // Push the result back onto the stack
-        c.PushObject(c.CloneObject(left)); // Push the left operand back onto the stack
+            c.Fsub(Register.D0, Register.D0, Register.D1);
 
-        return null; 
+        //  Sincroniza D0 → X0 para que print_float funcione correctamente
+        c.Fmov(Register.X0, Register.D0);
+
+        //  Guarda resultado flotante en la pila
+        c.instructions.Add("STR D0, [SP, #-8]!");
     }
+    else
+    {
+        if (operation == "+")
+            c.Add(Register.X0, Register.X0, Register.X1);
+        else if (operation == "-")
+            c.Sub(Register.X0, Register.X0, Register.X1);
+
+        c.Push(Register.X0);
+    }
+
+    var resultObject = new StackObject
+    {
+        Type = resultType,
+        Length = 8,
+        Depth = c.CurrentDepth,
+        Id = null
+    };
+    c.PushObject(resultObject);
+
+    return null;
+}
 
     public override Object? VisitMod(LanguageParser.ModContext context)
     {
-        return null;
+    c.Comment("Operación módulo (int % int)");
+
+    Visit(context.expr(0)); // lado izquierdo
+    Visit(context.expr(1)); // lado derecho
+
+    var right = c.PopObject(Register.X1);
+    var left = c.PopObject(Register.X0);
+
+    // Validación de tipos
+    if (left.Type != StackObject.StackObjectType.Int || right.Type != StackObject.StackObjectType.Int)
+        throw new Exception("Error semántico: El operador % solo se puede aplicar entre enteros (int)");
+
+    // x0 = x0 % x1
+    // Proceso:
+    //   q = x0 / x1
+    //   q = q * x1
+    //   r = x0 - q
+
+    c.Div("x9", Register.X0, Register.X1); // x9 = x0 / x1 (cociente)
+    c.Mul("x9", "x9", Register.X1);        // x9 = x9 * x1
+    c.Sub(Register.X0, Register.X0, "x9"); // x0 = x0 - x9 (residuo)
+
+    c.Push(Register.X0);
+
+    var result = c.IntObject(); // resultado es de tipo int
+    c.PushObject(result);
+
+    return null;
+
     }
 
     public override Object? VisitIncremento(LanguageParser.IncrementoContext context)
@@ -214,20 +335,40 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
         return null;
     }
 
-    public override Object? VisitFloat(LanguageParser.FloatContext context)
+     public override object? VisitFloat(LanguageParser.FloatContext context)
     {
+        var valueText = context.FLOAT().GetText();
+        var value = double.Parse(valueText, CultureInfo.InvariantCulture);
+
+        c.Comment($"Constante float: {value}");
+
+        var floatObj = c.FloatObject();
+        c.PushConstant(floatObj, value);
+
         return null;
     }
 
-    public override Object? VisitBoleanTrueExpresion(LanguageParser.BoleanTrueExpresionContext context)
+
+    public override object? VisitBoleanTrueExpresion(LanguageParser.BoleanTrueExpresionContext context)
     {
+        c.Comment("Constante booleana: true");
+
+        var boolObj = c.IntObject();
+        c.PushConstant(boolObj, 1);
+
         return null;
     }
 
-    public override Object? VisitBoleanFalseExpresion(LanguageParser.BoleanFalseExpresionContext context)
+    public override object? VisitBoleanFalseExpresion(LanguageParser.BoleanFalseExpresionContext context)
     {
+        c.Comment("Constante booleana: false");
+
+        var boolObj = c.IntObject();
+        c.PushConstant(boolObj, 0);
+
         return null;
     }
+
 
     public override Object? VisitCadenaExpresion(LanguageParser.CadenaExpresionContext context)
     {
@@ -244,28 +385,144 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
         return null;
     }
 
-    public override Object? VisitOperadorNegacion(LanguageParser.OperadorNegacionContext context)
+    public override object? VisitOperadorNegacion(LanguageParser.OperadorNegacionContext context)
     {
+        Visit(context.right);
+
+        var value = c.PopObject(Register.X0);
+
+        if (value.Type != StackObject.StackObjectType.Int)
+            throw new Exception("La negación lógica (!) solo se puede aplicar a booleanos representados como enteros");
+
+        c.Cmp(Register.X0, "0");
+        c.Cset(Register.X0, "EQ");
+
+        c.Push(Register.X0);
+        c.PushObject(c.IntObject());
+
         return null;
     }
 
-    public override Object? VisitRelational(LanguageParser.RelationalContext context)
+
+public override object? VisitRelational(LanguageParser.RelationalContext context)
+{
+    var op = context.op.Text;
+    c.Comment($"Operación relacional: {op}");
+
+    Visit(context.expr(0));
+    Visit(context.expr(1));
+
+    var right = c.PopObject(Register.X1);
+    var left = c.PopObject(Register.X0);
+
+    bool isFloat = left.Type == StackObject.StackObjectType.Float || right.Type == StackObject.StackObjectType.Float;
+
+    if (isFloat)
     {
-        return null;
+        if (left.Type == StackObject.StackObjectType.Int)
+            c.Scvtf(Register.D0, Register.X0);
+        else
+            c.Fmov(Register.D0, Register.X0);
+
+        if (right.Type == StackObject.StackObjectType.Int)
+            c.Scvtf(Register.D1, Register.X1);
+        else
+            c.Fmov(Register.D1, Register.X1);
+
+        c.Fcmp(Register.D0, Register.D1);
+    }
+    else
+    {
+        c.Cmp(Register.X0, Register.X1);
     }
 
-    public override Object? VisitEqualitys(LanguageParser.EqualitysContext context)
+    string condition = op switch
     {
-        return null;
+        ">"  => "GT",
+        "<"  => "LT",
+        ">=" => "GE",
+        "<=" => "LE",
+        _ => throw new Exception($"Operador relacional no soportado: {op}")
+    };
+
+    c.Cset(Register.X0, condition);
+
+    c.Push(Register.X0);
+    c.PushObject(c.IntObject());
+
+    return null;
+}
+
+public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
+{
+    var op = context.op.Text;
+
+    Visit(context.expr(0));
+    Visit(context.expr(1));
+
+    var right = c.PopObject(Register.X1);
+    var left = c.PopObject(Register.X0);
+
+    bool isFloat = left.Type == StackObject.StackObjectType.Float || right.Type == StackObject.StackObjectType.Float;
+
+    if (isFloat)
+    {
+        if (left.Type == StackObject.StackObjectType.Int)
+            c.Scvtf(Register.D0, Register.X0);
+        else
+            c.Fmov(Register.D0, Register.X0);
+
+        if (right.Type == StackObject.StackObjectType.Int)
+            c.Scvtf(Register.D1, Register.X1);
+        else
+            c.Fmov(Register.D1, Register.X1);
+
+        c.instructions.Add($"FCMP {Register.D0}, {Register.D1}");
     }
+    else
+    {
+        c.instructions.Add($"CMP {Register.X0}, {Register.X1}");
+    }
+
+    string condition = op == "==" ? "EQ" : "NE";
+
+    c.instructions.Add($"CSET {Register.X0}, {condition}");
+
+    c.Push(Register.X0);
+    c.PushObject(c.IntObject());
+
+    return null;
+}
+
 
     public override Object? VisitIncrementoDecremento(LanguageParser.IncrementoDecrementoContext context)
     {
         return null;
     }
 
-    public override Object? VisitLogicos(LanguageParser.LogicosContext context)
+    public override object? VisitLogicos(LanguageParser.LogicosContext context)
     {
+        var op = context.op.Text;
+
+        Visit(context.expr(0));
+        Visit(context.expr(1));
+
+        var right = c.PopObject(Register.X1);
+        var left = c.PopObject(Register.X0);
+
+        if (left.Type != StackObject.StackObjectType.Int || right.Type != StackObject.StackObjectType.Int)
+            throw new Exception("El operador lógico solo puede aplicarse a booleanos (int 0 o 1)");
+
+        if (op == "&&")
+            c.instructions.Add($"AND {Register.X0}, {Register.X0}, {Register.X1}");
+        else if (op == "||")
+            c.instructions.Add($"ORR {Register.X0}, {Register.X0}, {Register.X1}");
+        else
+            throw new Exception($"Operador lógico no soportado: {op}");
+
+        c.Push(Register.X0);
+        c.PushObject(c.IntObject());
+
         return null;
     }
 

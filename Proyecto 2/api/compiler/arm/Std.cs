@@ -29,6 +29,7 @@ public class StandardLibrary
     private readonly static Dictionary<string, string> FunctionDefinitions = new Dictionary<string, string>
     {
         { "print_integer", @"
+.balign 4
 //--------------------------------------------------------------
 // print_integer - Prints a signed integer to stdout
 //
@@ -111,9 +112,9 @@ reverse_loop:
     
 print_result:
     // Add newline
-    mov w24, #10               // Newline character
-    strb w24, [x22, x23]       // Add to end of buffer
-    add x23, x23, #1           // Increment counter
+    // mov w24, #10               // Newline character
+    // strb w24, [x22, x23]       // Add to end of buffer
+    // add x23, x23, #1           // Increment counter
     
     // Print the result
     mov x0, #1                 // fd = 1 (stdout)
@@ -137,6 +138,7 @@ minus_sign:
     },
 
     { "print_string", @"
+.balign 4
 //--------------------------------------------------------------
 // print_string - Prints a null-terminated string to stdout
 //
@@ -176,6 +178,66 @@ print_done:
     ldp     x19, x20, [sp], #16
     ldp     x29, x30, [sp], #16
     ret
+    " },
+
+    { "print_float", @"
+    .balign 4
+    print_float:
+        stp x29, x30, [sp, #-16]!
+        stp x0, x1, [sp, #-16]!
+
+        // Escalar hacia atrás: d0 = d0 / 100.0
+        mov x0, #100
+        scvtf d1, x0
+        fdiv d0, d0, d1
+
+        // Imprime la parte entera
+        fcvtzs x0, d0
+        bl print_integer
+
+        // Imprime '.'
+        mov x0, #1
+        adr x1, dot_char
+        mov x2, #1
+        mov x8, #64
+        svc #0
+
+        // Parte decimal
+        fmov d1, d0
+        fcvtzs x0, d0
+        scvtf d2, x0
+        fsub d1, d1, d2
+
+        // Multiplica la parte decimal por 100
+        mov x0, #100
+        scvtf d2, x0
+        
+        fmul d1, d1, d2
+        fcvtzs x0, d1
+
+        // Asegura que los decimales sean positivos
+        cmp x0, #0
+        cneg x0, x0, lt
+
+        // Imprime los decimales
+        bl print_integer
+
+        // Nueva línea
+        mov x0, #1
+        adr x1, newline
+        mov x2, #1
+        mov x8, #64
+        svc #0
+
+        ldp x0, x1, [sp], #16
+        ldp x29, x30, [sp], #16
+        ret
+
+    dot_char:
+        .ascii "".""
+
+    newline:
+        .ascii ""\n""
     " }
 
     };

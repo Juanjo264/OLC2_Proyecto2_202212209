@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -17,12 +18,13 @@ public class StackObject
 
 public class ArmGenerator
 {
-  private readonly List<string> instructions = new List<string>();
+  public readonly List<string> instructions = new List<string>();
 
   private readonly StandardLibrary stdlib = new StandardLibrary();
 
   private List<StackObject> stack = new List<StackObject>();
   private int depth = 0;
+public int CurrentDepth => depth;
 
   //stack operations  
 
@@ -42,9 +44,14 @@ public class ArmGenerator
         Push(Register.X0);
 
       break;
-    case StackObject.StackObjectType.Float:
-      //To do
+  case StackObject.StackObjectType.Float:
+      double floatValue = (double)value;
+      int scaled = (int)(floatValue * 100);  // Escalar el float a entero
+      Mov(Register.X0, scaled);              // Mover el entero escalado
+      Scvtf(Register.D0, Register.X0);       // Convertir entero a float64
+      instructions.Add("STR D0, [SP, #-8]!"); // Guardar en la pila
       break;
+
     case StackObject.StackObjectType.String:
       // to do
       List<byte> stringArray = Utils.StringTo1Byte((string)value);
@@ -68,18 +75,40 @@ public class ArmGenerator
 
   }
 
-  
+public void PrintFloat(string fd)
+{
+    stdlib.Use("print_float");
+    stdlib.Use("print_integer"); 
+    
+    // instructions.Add($"FMOV D0, {fd}");
+    instructions.Add("BL print_float");
+}
 
-  public StackObject PopObject(string rd)
-  {
-
+public StackObject PopObject(string rd)
+{
     var obj = stack.Last();
     stack.RemoveAt(stack.Count - 1);
 
-    Pop(rd);
-    return obj;
+    if (obj.Type == StackObject.StackObjectType.Float)
+    {
+        if (rd.StartsWith("d"))
+        {
+            instructions.Add($"LDR {rd}, [SP], #8");
+        }
+        else if (rd.StartsWith("x"))
+        {
+            var dreg = "d" + rd.Substring(1); // Convertir x1 → d1
+            instructions.Add($"LDR {dreg}, [SP], #8");
+            instructions.Add($"FMOV {rd}, {dreg}");
+        }
+    }
+    else
+    {
+        instructions.Add($"LDR {rd}, [SP], #8");
+    }
 
-  }
+    return obj;
+}
 
   public StackObject IntObject()
   {
@@ -218,6 +247,13 @@ public class ArmGenerator
         instructions.Add($"MOV {rd}, #{imm}");
     }
 
+// Mov entre registros
+public void Mov(string rd, string rs)
+{
+    instructions.Add($"MOV {rd}, {rs}");
+}
+
+
     public void Push(string rs)
     {
         instructions.Add($"STR {rs}, [SP, #-8]!"); // Push to stack
@@ -232,6 +268,53 @@ public class ArmGenerator
     {
         instructions.Add($"SVC #0");
     }
+
+    //  Convierte entero con signo (Xn) a flotante (Dn)
+      public void Scvtf(string fd, string xn)
+      {
+          instructions.Add($"SCVTF {fd}, {xn}");
+      }
+
+      //  Convierte flotante (Dn) a entero con truncamiento (Xn)
+      public void Fcvtzs(string xn, string fd)
+      {
+          instructions.Add($"FCVTZS {xn}, {fd}");
+      }
+
+      // Suma de flotantes
+      public void Fadd(string rd, string rs1, string rs2)
+      {
+          instructions.Add($"FADD {rd}, {rs1}, {rs2}");
+      }
+
+      //  Resta de flotantes
+      public void Fsub(string rd, string rs1, string rs2)
+      {
+          instructions.Add($"FSUB {rd}, {rs1}, {rs2}");
+      }
+
+      // Multiplicación de flotantes
+      public void Fmul(string rd, string rs1, string rs2)
+      {
+          instructions.Add($"FMUL {rd}, {rs1}, {rs2}");
+      }
+
+      // División de flotantes
+      public void Fdiv(string rd, string rs1, string rs2)
+      {
+          instructions.Add($"FDIV {rd}, {rs1}, {rs2}");
+      }
+
+    public void Fmov(string rd, double value)
+    {
+        instructions.Add($"FMOV {rd}, #{value.ToString(CultureInfo.InvariantCulture)}");
+    }
+
+public void Fmov(string rd, string rs)
+{
+    instructions.Add($"FMOV {rd}, {rs}");
+}
+
 
     public void Endprogram()
     {
@@ -281,6 +364,24 @@ public class ArmGenerator
         sb.AppendLine(stdlib.GetFunctionDefinitions()); // Add standard library functions at the end
         return sb.ToString();
     }
+
+
+  //relacionales
+public void Cmp(string rs1, string rs2)
+{
+    instructions.Add($"CMP {rs1}, {rs2}");
+}
+
+public void Fcmp(string rd1, string rd2)
+{
+    instructions.Add($"FCMP {rd1}, {rd2}");
+}
+
+public void Cset(string rd, string condition)
+{
+    instructions.Add($"CSET {rd}, {condition}");
+}
+
 
 
 }
