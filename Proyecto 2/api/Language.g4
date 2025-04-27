@@ -2,9 +2,8 @@ grammar Language;
 
 options { caseInsensitive = false; }
 
-TRUE: 'true';
-FALSE: 'false';
 INT: [0-9]+;
+BOOL: 'true' | 'false';
 FLOAT: [0-9]+'.'[0-9]+;
 WS: [ \t\r\n]+ -> channel(HIDDEN);
 CARACTER : '\'' . '\'' ; 
@@ -33,12 +32,18 @@ program: listainstrucciones* ;
 
 listainstrucciones : variables |instruccion | structdcl | funcdlc ;
 
-variables: 'var' ID tipo (IGUAL expr)? (';')? #declaracionVar 
-| ID DOSPUNTOS_IGUAL expr      #declaracionImplicita 
-| 'var' ID '[]' tipo #declaracionSlicevacio
-| ID DOSPUNTOS_IGUAL '[]' tipo '{' expr (','expr)* '}'  #declaracionSlice
-| ID DOSPUNTOS_IGUAL '[][]' tipo '{' fila (',' fila)* ','? '}' #declaracionSlicemulti
-;
+variables: 'var' ID tipo '=' expr ';';
+
+
+// variables: 'var' ID tipo (IGUAL expr)?  #declaracionVar 
+// | ID DOSPUNTOS_IGUAL expr      #declaracionImplicita 
+// | 'var' ID '[]' tipo #declaracionSlicevacio
+// | ID DOSPUNTOS_IGUAL '[]' tipo '{' expr (','expr)* '}'  #declaracionSlice
+// | ID DOSPUNTOS_IGUAL '[][]' tipo '{' fila (',' fila)* ','? '}' #declaracionSlicemulti
+// ;
+
+
+
 fila: '{' expr (',' expr)* ','?'}' ;
 
 structdcl: 'type' ID 'struct' '{' structBody* '}' ;
@@ -57,17 +62,19 @@ instruccion:  expr  #ExprecionInstruccion
 |'break' #BreakInstruccion
 |'continue' #ContinueInstruccion
 |'return' expr? #ReturnInstruccion
-| print #PrintInstruccion
-|	asignacion								# Assign
+| print #PrintInstruccion					
 | '{' listainstrucciones* '}' #BloqueInstrucciones
-| 'if'  expr  instruccion ('else' instruccion)? #IfInstruccion
+| 'if'  '(' expr ')' instruccion ('else' instruccion)? #IfInstruccion
 | 'while' '(' expr ')' instruccion #WhileInstruccion
 | 'switch'  expr  '{' cases* (defaultCase)? '}'  #SwitchInstruccion
-| 'for' expr instruccion  #ForCondicion
-| 'for' (asignacion | variables) ';' expr ';' expr instruccion #Forincicializacion
+| 'for' '(' forInit expr ';' expr ')' instruccion  #ForCondicion
+| 'for' (expr | variables) ';' expr ';' expr instruccion #Forincicializacion
 | 'for' ID ',' ID DOSPUNTOS_IGUAL 'range' ID instruccion #ForRange
 
 ;
+
+forInit: variables | expr ';';
+
 
 cases:
     'case' expr ':' listainstrucciones*
@@ -89,20 +96,23 @@ expr:
 	| expr  op = ('+' | '-') expr	# AddSub
 	| expr	op = ('>' | '<' | '>=' | '<=' ) expr	# Relational
 	| expr	op = ('==' | '!=') expr	# Equalitys
-  | expr '[' expr ']' '[' expr ']'  #AccesoSliceMulti
+  	| expr '[' expr ']' '[' expr ']'  #AccesoSliceMulti
 	| expr '[' expr ']'  #AccesoSlice
 	| expr	op = ('&&' | '||' ) expr	# Logicos
+	| expr '=' expr								# Assign
 	| FLOAT					      # Float
 	| INT					      # Int
 	| 'new' ID '(' args? ')' #New
-	| TRUE #boleanTrueExpresion
-	| FALSE #boleanFalseExpresion
+	| BOOL				# Boolean
 	| CARACTER #caracterExpresion
 	| CADENA #cadenaExpresion
 	| ID #Idexpresion
 	| ID ('++' | '--') # IncrementoDecremento 
 	| 'nil' #nilExpresion
 ; 
+
+
+
 camposStruct: campoStruct (',' campoStruct)* (',')? ;
 campoStruct: ID ':' expr ;
 
@@ -113,12 +123,12 @@ call:
 
 args: expr (',' expr)* ;
 
-asignacion:	ID signo=(MASIGUAL | MENOSIGUAL) expr #incremento
-					| ID '[' expr ']' IGUAL expr #asignarSlice
-					| ID '[' expr ']' '[' expr ']' IGUAL expr  #AsignarSliceMulti
-					| ID IGUAL '[]' tipo '{' expr (',' expr)* '}' #asignarSliceCompleto
-					| expr IGUAL expr (';')? #asignarVar 
-					;
+// asignacion:	ID signo=(MASIGUAL | MENOSIGUAL) expr #incremento
+// 					| ID '[' expr ']' IGUAL expr #asignarSlice
+// 					| ID '[' expr ']' '[' expr ']' IGUAL expr  #AsignarSliceMulti
+// 					| ID IGUAL '[]' tipo '{' expr (',' expr)* '}' #asignarSliceCompleto
+// 					| expr IGUAL expr #asignarVar 
+// 					;
 
 print: 'print' PIZQ impresiones PDER ;
 

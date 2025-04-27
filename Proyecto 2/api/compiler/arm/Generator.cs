@@ -6,7 +6,7 @@ using System.Xml.Serialization;
 
 public class StackObject
 {
-  public enum StackObjectType {Int, Float, String}
+  public enum StackObjectType {Int, Float, String, Bool}
 
   public StackObjectType Type { get; set; }
   public int Length { get; set; }
@@ -26,6 +26,18 @@ public class ArmGenerator
   private int depth = 0;
 public int CurrentDepth => depth;
 
+  public int labelCounter = 0;
+
+  public string GetLabel()
+  {
+    return $"L{labelCounter++}";
+  }
+
+  public void SetLabel(string label)
+  {
+    instructions.Add($"{label}:");
+  }
+
   //stack operations  
 
   public void PushObject(StackObject obj)
@@ -33,6 +45,11 @@ public int CurrentDepth => depth;
     stack.Add(obj);
 
 
+  }
+  
+  public StackObject TopObject()
+  {
+    return stack.Last();
   }
   public void PushConstant(StackObject obj, object value)
   {
@@ -44,12 +61,29 @@ public int CurrentDepth => depth;
         Push(Register.X0);
 
       break;
+  case StackObject.StackObjectType.Bool:
+      Mov(Register.X0, (bool)value ? 1 : 0);
+      Push(Register.X0);
+
+      break;
+
   case StackObject.StackObjectType.Float:
-      double floatValue = (double)value;
-      int scaled = (int)(floatValue * 100);  // Escalar el float a entero
-      Mov(Register.X0, scaled);              // Mover el entero escalado
-      Scvtf(Register.D0, Register.X0);       // Convertir entero a float64
-      instructions.Add("STR D0, [SP, #-8]!"); // Guardar en la pila
+
+      long floatBits = BitConverter.DoubleToInt64Bits((double)value);
+      short[] floatParts = new short[4];
+
+      for (int i = 0; i < 4; i++)
+      {
+          floatParts[i] = (short)((floatBits >> (i * 16)) & 0xFFFF);
+      }
+
+      instructions.Add($"MOVZ X0, {floatParts[0]}, LSL #0");
+      for (int i = 1; i < 4; i++)
+      {
+          instructions.Add($"MOVK X0, #{floatParts[i]}, LSL #{i * 16}");
+      }
+
+      Push(Register.X0);
       break;
 
     case StackObject.StackObjectType.String:
@@ -75,40 +109,27 @@ public int CurrentDepth => depth;
 
   }
 
-public void PrintFloat(string fd)
+public void PrintFloat()
 {
-    stdlib.Use("print_float");
     stdlib.Use("print_integer"); 
+    stdlib.Use("print_double");
     
-    // instructions.Add($"FMOV D0, {fd}");
-    instructions.Add("BL print_float");
+    instructions.Add("BL print_double");
 }
 
 public StackObject PopObject(string rd)
 {
+    if (!stack.Any())
+    {
+        throw new InvalidOperationException("Attempted to pop from an empty stack.");
+    }
+
     var obj = stack.Last();
     stack.RemoveAt(stack.Count - 1);
 
-    if (obj.Type == StackObject.StackObjectType.Float)
-    {
-        if (rd.StartsWith("d"))
-        {
-            instructions.Add($"LDR {rd}, [SP], #8");
-        }
-        else if (rd.StartsWith("x"))
-        {
-            var dreg = "d" + rd.Substring(1); // Convertir x1 → d1
-            instructions.Add($"LDR {dreg}, [SP], #8");
-            instructions.Add($"FMOV {rd}, {dreg}");
-        }
-    }
-    else
-    {
-        instructions.Add($"LDR {rd}, [SP], #8");
-    }
-
+    Pop(rd);
     return obj;
-}
+}   
 
   public StackObject IntObject()
   {
@@ -123,6 +144,21 @@ public StackObject PopObject(string rd)
     };
 
   }
+   public StackObject BoolObject()
+  {
+
+
+    return new StackObject
+    {
+      Type = StackObject.StackObjectType.Bool,
+      Length = 8,
+      Depth = depth,
+      Id = null
+    };
+
+  }
+
+
 
   public StackObject FloatObject()
   {
@@ -305,15 +341,11 @@ public void Mov(string rd, string rs)
           instructions.Add($"FDIV {rd}, {rs1}, {rs2}");
       }
 
-    public void Fmov(string rd, double value)
-    {
-        instructions.Add($"FMOV {rd}, #{value.ToString(CultureInfo.InvariantCulture)}");
-    }
 
-public void Fmov(string rd, string rs)
-{
-    instructions.Add($"FMOV {rd}, {rs}");
-}
+    public void Fmov(string rd, string rs)
+    {
+        instructions.Add($"FMOV {rd}, {rs}");
+    }
 
 
     public void Endprogram()
@@ -383,5 +415,47 @@ public void Cset(string rd, string condition)
 }
 
 
+//if
 
+ public void Cbz(string rs, string label)
+{
+    instructions.Add($"CBZ {rs}, {label}"); 
+}
+
+public void B(string label)
+{
+    instructions.Add($"B {label}"); 
+}
+
+//comparaciones
+public void Beq(string label)
+{
+    instructions.Add($"BEQ {label}"); 
+}
+public void Bne(string label)
+{
+    instructions.Add($"BNE {label}"); 
+}
+public void Blt(string label)
+{
+    instructions.Add($"BLT {label}"); 
+}
+public void Bge(string label)
+{
+    instructions.Add($"BGE {label}"); 
+}
+public void Ble(string label)
+{
+    instructions.Add($"BLE {label}"); 
+}
+
+
+public void Bgt(string label)
+{
+    instructions.Add($"BGT {label}"); 
+}
+public void Ret()
+{
+    instructions.Add($"RET"); 
+}
 }

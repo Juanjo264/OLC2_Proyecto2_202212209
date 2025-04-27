@@ -50,6 +50,8 @@ public class StructType : Invocable {
 
         return new InstanceValue(instance);
     }
+
+    
 }
 
 public class StructFieldInfo {
