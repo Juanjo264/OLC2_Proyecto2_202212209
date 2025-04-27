@@ -104,19 +104,19 @@
     ]
   },
   "packageFolders": {
-    "/home/juanjo/.nuget/packages/": {}
+    "C:\\Users\\juanj\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/api.csproj",
+      "projectUniqueName": "C:\\Users\\juanj\\Desktop\\Compi 2\\P2\\OLC2_Proyecto2_202212209\\Proyecto 2\\api\\api.csproj",
       "projectName": "api",
-      "projectPath": "/home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/api.csproj",
-      "packagesPath": "/home/juanjo/.nuget/packages/",
-      "outputPath": "/home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/obj/",
+      "projectPath": "C:\\Users\\juanj\\Desktop\\Compi 2\\P2\\OLC2_Proyecto2_202212209\\Proyecto 2\\api\\api.csproj",
+      "packagesPath": "C:\\Users\\juanj\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\juanj\\Desktop\\Compi 2\\P2\\OLC2_Proyecto2_202212209\\Proyecto 2\\api\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/home/juanjo/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\juanj\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -140,7 +140,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.200"
+      "SdkAnalysisLevel": "9.0.100"
     },
     "frameworks": {
       "net9.0": {
@@ -174,7 +174,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.202/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.102/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

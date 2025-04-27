@@ -156,20 +156,6 @@ public interface ILanguageVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitForCondicion([NotNull] LanguageParser.ForCondicionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by the <c>Forincicializacion</c>
-	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitForincicializacion([NotNull] LanguageParser.ForincicializacionContext context);
-	/// <summary>
-	/// Visit a parse tree produced by the <c>ForRange</c>
-	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitForRange([NotNull] LanguageParser.ForRangeContext context);
-	/// <summary>
 	/// Visit a parse tree produced by <see cref="LanguageParser.forInit"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

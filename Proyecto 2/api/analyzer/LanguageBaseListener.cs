@@ -284,34 +284,6 @@ public partial class LanguageBaseListener : ILanguageListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitForCondicion([NotNull] LanguageParser.ForCondicionContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by the <c>Forincicializacion</c>
-	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterForincicializacion([NotNull] LanguageParser.ForincicializacionContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by the <c>Forincicializacion</c>
-	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitForincicializacion([NotNull] LanguageParser.ForincicializacionContext context) { }
-	/// <summary>
-	/// Enter a parse tree produced by the <c>ForRange</c>
-	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterForRange([NotNull] LanguageParser.ForRangeContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by the <c>ForRange</c>
-	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitForRange([NotNull] LanguageParser.ForRangeContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="LanguageParser.forInit"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

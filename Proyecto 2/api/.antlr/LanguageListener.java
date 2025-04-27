@@ -1,4 +1,4 @@
-// Generated from /home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/Language.g4 by ANTLR 4.13.1
+// Generated from c:/Users/juanj/Desktop/Compi 2/P2/OLC2_Proyecto2_202212209/Proyecto 2/api/Language.g4 by ANTLR 4.13.1
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 /**
@@ -27,65 +27,15 @@ public interface LanguageListener extends ParseTreeListener {
 	 */
 	void exitListainstrucciones(LanguageParser.ListainstruccionesContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code declaracionVar}
-	 * labeled alternative in {@link LanguageParser#variables}.
+	 * Enter a parse tree produced by {@link LanguageParser#variables}.
 	 * @param ctx the parse tree
 	 */
-	void enterDeclaracionVar(LanguageParser.DeclaracionVarContext ctx);
+	void enterVariables(LanguageParser.VariablesContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code declaracionVar}
-	 * labeled alternative in {@link LanguageParser#variables}.
+	 * Exit a parse tree produced by {@link LanguageParser#variables}.
 	 * @param ctx the parse tree
 	 */
-	void exitDeclaracionVar(LanguageParser.DeclaracionVarContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code declaracionImplicita}
-	 * labeled alternative in {@link LanguageParser#variables}.
-	 * @param ctx the parse tree
-	 */
-	void enterDeclaracionImplicita(LanguageParser.DeclaracionImplicitaContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code declaracionImplicita}
-	 * labeled alternative in {@link LanguageParser#variables}.
-	 * @param ctx the parse tree
-	 */
-	void exitDeclaracionImplicita(LanguageParser.DeclaracionImplicitaContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code declaracionSlicevacio}
-	 * labeled alternative in {@link LanguageParser#variables}.
-	 * @param ctx the parse tree
-	 */
-	void enterDeclaracionSlicevacio(LanguageParser.DeclaracionSlicevacioContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code declaracionSlicevacio}
-	 * labeled alternative in {@link LanguageParser#variables}.
-	 * @param ctx the parse tree
-	 */
-	void exitDeclaracionSlicevacio(LanguageParser.DeclaracionSlicevacioContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code declaracionSlice}
-	 * labeled alternative in {@link LanguageParser#variables}.
-	 * @param ctx the parse tree
-	 */
-	void enterDeclaracionSlice(LanguageParser.DeclaracionSliceContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code declaracionSlice}
-	 * labeled alternative in {@link LanguageParser#variables}.
-	 * @param ctx the parse tree
-	 */
-	void exitDeclaracionSlice(LanguageParser.DeclaracionSliceContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code declaracionSlicemulti}
-	 * labeled alternative in {@link LanguageParser#variables}.
-	 * @param ctx the parse tree
-	 */
-	void enterDeclaracionSlicemulti(LanguageParser.DeclaracionSlicemultiContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code declaracionSlicemulti}
-	 * labeled alternative in {@link LanguageParser#variables}.
-	 * @param ctx the parse tree
-	 */
-	void exitDeclaracionSlicemulti(LanguageParser.DeclaracionSlicemultiContext ctx);
+	void exitVariables(LanguageParser.VariablesContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link LanguageParser#fila}.
 	 * @param ctx the parse tree
@@ -207,18 +157,6 @@ public interface LanguageListener extends ParseTreeListener {
 	 */
 	void exitPrintInstruccion(LanguageParser.PrintInstruccionContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code Assign}
-	 * labeled alternative in {@link LanguageParser#instruccion}.
-	 * @param ctx the parse tree
-	 */
-	void enterAssign(LanguageParser.AssignContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code Assign}
-	 * labeled alternative in {@link LanguageParser#instruccion}.
-	 * @param ctx the parse tree
-	 */
-	void exitAssign(LanguageParser.AssignContext ctx);
-	/**
 	 * Enter a parse tree produced by the {@code BloqueInstrucciones}
 	 * labeled alternative in {@link LanguageParser#instruccion}.
 	 * @param ctx the parse tree
@@ -302,6 +240,16 @@ public interface LanguageListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitForRange(LanguageParser.ForRangeContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link LanguageParser#forInit}.
+	 * @param ctx the parse tree
+	 */
+	void enterForInit(LanguageParser.ForInitContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link LanguageParser#forInit}.
+	 * @param ctx the parse tree
+	 */
+	void exitForInit(LanguageParser.ForInitContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link LanguageParser#cases}.
 	 * @param ctx the parse tree
@@ -394,18 +342,6 @@ public interface LanguageListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitMod(LanguageParser.ModContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code boleanTrueExpresion}
-	 * labeled alternative in {@link LanguageParser#expr}.
-	 * @param ctx the parse tree
-	 */
-	void enterBoleanTrueExpresion(LanguageParser.BoleanTrueExpresionContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code boleanTrueExpresion}
-	 * labeled alternative in {@link LanguageParser#expr}.
-	 * @param ctx the parse tree
-	 */
-	void exitBoleanTrueExpresion(LanguageParser.BoleanTrueExpresionContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code InstanciaStruct}
 	 * labeled alternative in {@link LanguageParser#expr}.
@@ -587,6 +523,18 @@ public interface LanguageListener extends ParseTreeListener {
 	 */
 	void exitAccesoSliceMulti(LanguageParser.AccesoSliceMultiContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code Assign}
+	 * labeled alternative in {@link LanguageParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterAssign(LanguageParser.AssignContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code Assign}
+	 * labeled alternative in {@link LanguageParser#expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitAssign(LanguageParser.AssignContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code Negate}
 	 * labeled alternative in {@link LanguageParser#expr}.
 	 * @param ctx the parse tree
@@ -599,17 +547,17 @@ public interface LanguageListener extends ParseTreeListener {
 	 */
 	void exitNegate(LanguageParser.NegateContext ctx);
 	/**
-	 * Enter a parse tree produced by the {@code boleanFalseExpresion}
+	 * Enter a parse tree produced by the {@code Boolean}
 	 * labeled alternative in {@link LanguageParser#expr}.
 	 * @param ctx the parse tree
 	 */
-	void enterBoleanFalseExpresion(LanguageParser.BoleanFalseExpresionContext ctx);
+	void enterBoolean(LanguageParser.BooleanContext ctx);
 	/**
-	 * Exit a parse tree produced by the {@code boleanFalseExpresion}
+	 * Exit a parse tree produced by the {@code Boolean}
 	 * labeled alternative in {@link LanguageParser#expr}.
 	 * @param ctx the parse tree
 	 */
-	void exitBoleanFalseExpresion(LanguageParser.BoleanFalseExpresionContext ctx);
+	void exitBoolean(LanguageParser.BooleanContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link LanguageParser#camposStruct}.
 	 * @param ctx the parse tree
@@ -664,66 +612,6 @@ public interface LanguageListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitArgs(LanguageParser.ArgsContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code incremento}
-	 * labeled alternative in {@link LanguageParser#asignacion}.
-	 * @param ctx the parse tree
-	 */
-	void enterIncremento(LanguageParser.IncrementoContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code incremento}
-	 * labeled alternative in {@link LanguageParser#asignacion}.
-	 * @param ctx the parse tree
-	 */
-	void exitIncremento(LanguageParser.IncrementoContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code asignarSlice}
-	 * labeled alternative in {@link LanguageParser#asignacion}.
-	 * @param ctx the parse tree
-	 */
-	void enterAsignarSlice(LanguageParser.AsignarSliceContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code asignarSlice}
-	 * labeled alternative in {@link LanguageParser#asignacion}.
-	 * @param ctx the parse tree
-	 */
-	void exitAsignarSlice(LanguageParser.AsignarSliceContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code AsignarSliceMulti}
-	 * labeled alternative in {@link LanguageParser#asignacion}.
-	 * @param ctx the parse tree
-	 */
-	void enterAsignarSliceMulti(LanguageParser.AsignarSliceMultiContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code AsignarSliceMulti}
-	 * labeled alternative in {@link LanguageParser#asignacion}.
-	 * @param ctx the parse tree
-	 */
-	void exitAsignarSliceMulti(LanguageParser.AsignarSliceMultiContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code asignarSliceCompleto}
-	 * labeled alternative in {@link LanguageParser#asignacion}.
-	 * @param ctx the parse tree
-	 */
-	void enterAsignarSliceCompleto(LanguageParser.AsignarSliceCompletoContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code asignarSliceCompleto}
-	 * labeled alternative in {@link LanguageParser#asignacion}.
-	 * @param ctx the parse tree
-	 */
-	void exitAsignarSliceCompleto(LanguageParser.AsignarSliceCompletoContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code asignarVar}
-	 * labeled alternative in {@link LanguageParser#asignacion}.
-	 * @param ctx the parse tree
-	 */
-	void enterAsignarVar(LanguageParser.AsignarVarContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code asignarVar}
-	 * labeled alternative in {@link LanguageParser#asignacion}.
-	 * @param ctx the parse tree
-	 */
-	void exitAsignarVar(LanguageParser.AsignarVarContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link LanguageParser#print}.
 	 * @param ctx the parse tree

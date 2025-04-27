@@ -32,7 +32,7 @@ program: listainstrucciones* ;
 
 listainstrucciones : variables |instruccion | structdcl | funcdlc ;
 
-variables: 'var' ID tipo '=' expr ';';
+variables: 'var' ID '=' expr ';';
 
 
 // variables: 'var' ID tipo (IGUAL expr)?  #declaracionVar 
@@ -68,8 +68,8 @@ instruccion:  expr  #ExprecionInstruccion
 | 'while' '(' expr ')' instruccion #WhileInstruccion
 | 'switch'  expr  '{' cases* (defaultCase)? '}'  #SwitchInstruccion
 | 'for' '(' forInit expr ';' expr ')' instruccion  #ForCondicion
-| 'for' (expr | variables) ';' expr ';' expr instruccion #Forincicializacion
-| 'for' ID ',' ID DOSPUNTOS_IGUAL 'range' ID instruccion #ForRange
+// | 'for' (expr | variables) ';' expr ';' expr instruccion #Forincicializacion
+// | 'for' ID ',' ID DOSPUNTOS_IGUAL 'range' ID instruccion #ForRange
 
 ;
 
@@ -85,7 +85,8 @@ defaultCase:
     ;
 
 expr:
-	'(' expr ')'			# Parens
+	 '(' expr ')'			# Parens
+		| expr '=' expr								# Assign
 	| expr call+  #Callee
 	| ID LLAVE_ABRE camposStruct LLAVE_CIERRA   # InstanciaStruct
 	| '!' right=expr #operadorNegacion
@@ -99,7 +100,6 @@ expr:
   	| expr '[' expr ']' '[' expr ']'  #AccesoSliceMulti
 	| expr '[' expr ']'  #AccesoSlice
 	| expr	op = ('&&' | '||' ) expr	# Logicos
-	| expr '=' expr								# Assign
 	| FLOAT					      # Float
 	| INT					      # Int
 	| 'new' ID '(' args? ')' #New

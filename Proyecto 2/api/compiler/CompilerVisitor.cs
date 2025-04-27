@@ -277,44 +277,49 @@ public override object? VisitAddSub(LanguageParser.AddSubContext context)
     // {
     //     return null;
     // }
+public override Object? VisitVariables(LanguageParser.VariablesContext context)
+{
+    var varName = context.ID().GetText();
+    c.Comment($"Variable declaration: {varName}");
 
-    public override Object? VisitVariables(LanguageParser.VariablesContext context)
+    Visit(context.expr()); // Evalúa la expresión de inicialización
+
+    // Registra la variable en la pila virtual
+    c.TagObject(varName);
+    c.Comment($"Variable {varName} registered in stack");
+
+    return null;
+}
+
+public override Object? VisitAssign(LanguageParser.AssignContext context)
+{
+    var assignee = context.expr(0);
+    if (assignee is LanguageParser.IdexpresionContext idContext)
     {
-        var varName = context.ID().GetText();
-        c.Comment($"Variable declaration: {varName}");
+        string varName = idContext.ID().GetText();
+        c.Comment($"Assignment to variable: {varName}");
 
-        Visit(context.expr());
-        c.TagObject(varName); // Tag the object with the variable name
+        Visit(context.expr(1)); // Evalua la expresión del lado derecho
 
+        var valueObject = c.PopObject(Register.X0); // Obtiene el valor a asignar
 
-        return null;
+        var (offset, varObject) = c.GetObject(varName);
+
+        c.Comment($"Storing value in variable {varName} at offset {offset}");
+        c.Mov(Register.X1, offset); // Mueve el offset al registro X1
+        c.Add(Register.X1, Register.SP, Register.X1); // Calcula la dirección en la pila
+        c.Str(Register.X0, Register.X1); // Almacena el valor en la dirección calculada
+
+        // Actualiza el tipo del objeto en la pila
+        varObject.Type = valueObject.Type;
+
+        c.Push(Register.X0);
+        c.PushObject(c.CloneObject(varObject));
     }
+    return null;
+}
 
 
-
-    public override Object? VisitAssign(LanguageParser.AssignContext context)
-    {
-        var assignee = context.expr(0);
-         if (assignee is LanguageParser.IdexpresionContext idContext)
-         {
-            string varName = idContext.ID().GetText();
-            c.Comment($"Assignment to variable: {varName}");
-            Visit(context.expr(1)); // Visit the right-hand side expression
-
-            var valueObject = c.PopObject(Register.X0); // Pop the value to assign
-            var (offset, varObject) = c.GetObject(varName); // Get the object associated with the variable
-            c.Mov(Register.X1, offset); // Move the value to X0
-
-            c.Add(Register.X1, Register.SP, Register.X1); // Add the offset to the stack pointer
-
-            c.Str(Register.X0, Register.X1); // Store the value in the variable
-
-            c.Push(Register.X0); // Push the value onto the stack
-            c.PushObject(c.CloneObject(varObject)); // Push the object onto the stack
-         }
-        return null;
-
-    }
 
     // public override Object? VisitAsignarSliceCompleto(LanguageParser.AsignarSliceCompletoContext context)
     // {
@@ -674,15 +679,16 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
         return null;
     }
 
-    public override Object? VisitForincicializacion(LanguageParser.ForincicializacionContext context)
-    {
-        return null;
-    }
 
-    public override Object? VisitForRange(LanguageParser.ForRangeContext context)
-    {
-        return null;
-    }
+    // public override Object? VisitForincicializacion(LanguageParser.ForincicializacionContext context)
+    // {
+    //     return null;
+    // }
+
+    // public override Object? VisitForRange(LanguageParser.ForRangeContext context)
+    // {
+    //     return null;
+    // }
 
     public override Object? VisitBreakInstruccion(LanguageParser.BreakInstruccionContext context)
     {

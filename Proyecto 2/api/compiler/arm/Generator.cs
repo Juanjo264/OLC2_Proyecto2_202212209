@@ -44,7 +44,6 @@ public int CurrentDepth => depth;
   {
     stack.Add(obj);
 
-
   }
   
   public StackObject TopObject()
@@ -119,10 +118,7 @@ public void PrintFloat()
 
 public StackObject PopObject(string rd)
 {
-    if (!stack.Any())
-    {
-        throw new InvalidOperationException("Attempted to pop from an empty stack.");
-    }
+
 
     var obj = stack.Last();
     stack.RemoveAt(stack.Count - 1);
@@ -201,44 +197,44 @@ public StackObject PopObject(string rd)
     depth++;
   }
 
-  public int EndScope()
-  {
+public int EndScope()
+{
     int byteOffset = 0;
 
     for (int i = stack.Count - 1; i >= 0; i--)
     {
-      if (stack[i].Depth == depth)
-      {
-        byteOffset += stack[i].Length;
-        stack.RemoveAt(i);
-      }else {
-        break;
-      }
+        if (stack[i].Depth == depth)
+        {
+            byteOffset += stack[i].Length;
+            stack.RemoveAt(i);
+        }
+        else
+        {
+            break;
+        }
     }
     depth--;
 
     return byteOffset;
-  }
-
+}
   public void TagObject(string id)
   {
     stack.Last().Id = id;
   }
 
-  public (int, StackObject) GetObject(string id)
-  {
-
+public (int, StackObject) GetObject(string id)
+{
     int byteOffset = 0;
     for (int i = stack.Count - 1; i >= 0; i--)
     {
-      if (stack[i].Id == id)
-      {
-        return (byteOffset, stack[i]);
-      }
-      byteOffset += stack[i].Length;
+        if (stack[i].Id == id)
+        {
+            return (byteOffset, stack[i]); // Devuelve el offset y el objeto encontrado
+        }
+        byteOffset += stack[i].Length; // Incrementa el offset según el tamaño del objeto
     }
     throw new Exception($"Object {id} not found in stack");
-  }
+}
 
   public void Add(string rd, string rs1, string rs2)
   {
