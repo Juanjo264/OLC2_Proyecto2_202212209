@@ -42,7 +42,7 @@ public void DeclareVariable(string id, ValueWrapper value, Type tipoEsperado = n
     if (InterpreterVisitor.GlobalSymbolTable != null) {
         string scope = this.parent == null ? "Global" : "Local";
         InterpreterVisitor.GlobalSymbolTable.AddSymbol(id, "Variable", dataType, scope, line, column);
-        Console.WriteLine(" Variable " +id +"registrada en la tabla de símbolos con tipo ", dataType , "en línea " ,line," columna" ,column);
+       // Console.WriteLine(" Variable " +id +"registrada en la tabla de símbolos con tipo ", dataType , "en línea " ,line," columna" ,column);
     } else {
         Console.WriteLine(" No se pudo registrar la variable "+id +" porque la tabla de símbolos no está inicializada.");
     }

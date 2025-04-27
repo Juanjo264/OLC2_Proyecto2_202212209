@@ -3,7 +3,6 @@ grammar Language;
 options { caseInsensitive = false; }
 
 INT: [0-9]+;
-BOOL: 'true' | 'false';
 FLOAT: [0-9]+'.'[0-9]+;
 WS: [ \t\r\n]+ -> channel(HIDDEN);
 CARACTER : '\'' . '\'' ; 
@@ -32,18 +31,8 @@ program: listainstrucciones* ;
 
 listainstrucciones : variables |instruccion | structdcl | funcdlc ;
 
-variables: 'var' ID '=' expr ';';
-
-
-// variables: 'var' ID tipo (IGUAL expr)?  #declaracionVar 
-// | ID DOSPUNTOS_IGUAL expr      #declaracionImplicita 
-// | 'var' ID '[]' tipo #declaracionSlicevacio
-// | ID DOSPUNTOS_IGUAL '[]' tipo '{' expr (','expr)* '}'  #declaracionSlice
-// | ID DOSPUNTOS_IGUAL '[][]' tipo '{' fila (',' fila)* ','? '}' #declaracionSlicemulti
-// ;
-
-
-
+variables: 'var' ID tipo IGUAL expr
+;
 fila: '{' expr (',' expr)* ','?'}' ;
 
 structdcl: 'type' ID 'struct' '{' structBody* '}' ;
@@ -59,22 +48,22 @@ param: ID tipo ;
 
 
 instruccion:  expr  #ExprecionInstruccion 
+| '{' listainstrucciones* '}' #BloqueInstrucciones
 |'break' #BreakInstruccion
 |'continue' #ContinueInstruccion
 |'return' expr? #ReturnInstruccion
-| print #PrintInstruccion					
-| '{' listainstrucciones* '}' #BloqueInstrucciones
-| 'if'  '(' expr ')' instruccion ('else' instruccion)? #IfInstruccion
+| print #PrintInstruccion
+| 'if'  expr  instruccion ('else' instruccion)? #IfInstruccion
 | 'while' '(' expr ')' instruccion #WhileInstruccion
 | 'switch'  expr  '{' cases* (defaultCase)? '}'  #SwitchInstruccion
-| 'for' '(' forInit expr ';' expr ')' instruccion  #ForCondicion
-// | 'for' (expr | variables) ';' expr ';' expr instruccion #Forincicializacion
-// | 'for' ID ',' ID DOSPUNTOS_IGUAL 'range' ID instruccion #ForRange
+| 'for' expr instruccion  #ForCondicion
+| 'for' forInit ';' expr ';' expr instruccion #Forincicializacion
+| 'for' ID ',' ID DOSPUNTOS_IGUAL 'range' ID instruccion #ForRange
 
 ;
 
-forInit: variables | expr ';';
-
+forInit: variables | expr 
+;
 
 cases:
     'case' expr ':' listainstrucciones*
@@ -85,8 +74,7 @@ defaultCase:
     ;
 
 expr:
-	 '(' expr ')'			# Parens
-		| expr '=' expr								# Assign
+	'(' expr ')'			# Parens
 	| expr call+  #Callee
 	| ID LLAVE_ABRE camposStruct LLAVE_CIERRA   # InstanciaStruct
 	| '!' right=expr #operadorNegacion
@@ -97,22 +85,21 @@ expr:
 	| expr  op = ('+' | '-') expr	# AddSub
 	| expr	op = ('>' | '<' | '>=' | '<=' ) expr	# Relational
 	| expr	op = ('==' | '!=') expr	# Equalitys
-  	| expr '[' expr ']' '[' expr ']'  #AccesoSliceMulti
+  | expr '[' expr ']' '[' expr ']'  #AccesoSliceMulti
 	| expr '[' expr ']'  #AccesoSlice
 	| expr	op = ('&&' | '||' ) expr	# Logicos
+	| ID op ='=' expr								# Assign
+	| BOOL										# Boolean
+
 	| FLOAT					      # Float
 	| INT					      # Int
 	| 'new' ID '(' args? ')' #New
-	| BOOL				# Boolean
 	| CARACTER #caracterExpresion
 	| CADENA #cadenaExpresion
 	| ID #Idexpresion
 	| ID ('++' | '--') # IncrementoDecremento 
 	| 'nil' #nilExpresion
 ; 
-
-
-
 camposStruct: campoStruct (',' campoStruct)* (',')? ;
 campoStruct: ID ':' expr ;
 
@@ -127,7 +114,7 @@ args: expr (',' expr)* ;
 // 					| ID '[' expr ']' IGUAL expr #asignarSlice
 // 					| ID '[' expr ']' '[' expr ']' IGUAL expr  #AsignarSliceMulti
 // 					| ID IGUAL '[]' tipo '{' expr (',' expr)* '}' #asignarSliceCompleto
-// 					| expr IGUAL expr #asignarVar 
+// 					| expr IGUAL expr (';')? #asignarVar 
 // 					;
 
 print: 'print' PIZQ impresiones PDER ;
@@ -138,15 +125,13 @@ impresiones: impresiones ',' expr
 if: 'if'  expr  LLAVE_ABRE listainstrucciones LLAVE_CIERRA ('else' LLAVE_ABRE listainstrucciones LLAVE_CIERRA)? 
   | 'if'  expr  LLAVE_ABRE listainstrucciones LLAVE_CIERRA 'else' if;
 
+BOOL: 'true' | 'false';
+
+
 tipo: 'int'
 | 'float64'
 | 'string'
 | 'bool'
 | 'rune'
-|ID
-	| 'nil' 
+| 'nil' 
 ;
-
-
-
-

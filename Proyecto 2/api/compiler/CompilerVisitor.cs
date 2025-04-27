@@ -201,44 +201,67 @@ public override object? VisitMulDiv(LanguageParser.MulDivContext context)
 }
 
 public override object? VisitAddSub(LanguageParser.AddSubContext context)
+{
+    c.Comment("Operación de suma o resta");
+    var operation = context.op.Text;
+
+    // Visita los operandos
+    Visit(context.expr(0));
+    Visit(context.expr(1));
+
+    // Obtiene los operandos de la pila
+    var isRightDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
+    var right = c.PopObject(isRightDouble ? Register.D0 : Register.X0);
+    var isLeftDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
+    var left = c.PopObject(isLeftDouble ? Register.D1 : Register.X1);
+
+    // Manejo de operaciones con flotantes
+    if (isLeftDouble || isRightDouble)
     {
-        c.Comment("Operación de suma o resta");
-        var operation = context.op.Text;
+        if (!isLeftDouble) c.Scvtf(Register.D1, Register.X1); // Convierte entero a flotante
+        if (!isRightDouble) c.Scvtf(Register.D0, Register.X0); // Convierte entero a flotante
 
-        Visit(context.expr(0));
-        Visit(context.expr(1));
-
-
-        var isRightDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
-        var right = c.PopObject(isRightDouble ? Register.D0 : Register.X0);
-        var isLeftDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
-        var left = c.PopObject(isLeftDouble ? Register.D1 : Register.X1);
-
-        if (isLeftDouble || isRightDouble)
+        if (operation == "+")
         {
-            if (!isLeftDouble)c.Scvtf(Register.D1, Register.X1);
-            if (!isRightDouble)c.Scvtf(Register.D0, Register.X0); 
-            
-            if (operation == "+")
-                {
-                    c.Fadd(Register.D0, Register.D0, Register.D1);
-                }
-            else if (operation == "-")
-            {
-                c.Fsub(Register.D0, Register.D1, Register.D0);
-            }
-
-            c.Comment("Pushing float result");
-            c.Push(Register.D0);
-            c.PushObject(c.CloneObject(
-                isLeftDouble ? left : right
-            ));
+            c.Fadd(Register.D0, Register.D0, Register.D1); // Suma flotante
+        }
+        else if (operation == "-")
+        {
+            c.Fsub(Register.D0, Register.D0, Register.D1); // Resta flotante
         }
 
-        
-        
-        return null;
+        c.Comment("Pushing float result");
+        c.Push(Register.D0);
+        c.PushObject(c.CloneObject(isLeftDouble ? left : right));
     }
+    else
+    {
+        // Manejo de operaciones con enteros
+        if (operation == "+")
+        {
+            c.Add(Register.X0, Register.X0, Register.X1); // Suma entera
+        }
+        else if (operation == "-")
+        {
+            c.Sub(Register.X0, Register.X0, Register.X1); // Resta entera
+        }
+
+        c.Comment("Pushing integer result");
+        c.Push(Register.X0);
+
+        // Empuja el objeto resultante a la pila virtual
+        var resultObject = new StackObject
+        {
+            Type = StackObject.StackObjectType.Int,
+            Length = 8,
+            Depth = c.CurrentDepth,
+            Id = null
+        };
+        c.PushObject(resultObject);
+    }
+
+    return null;
+}
 
     public override Object? VisitMod(LanguageParser.ModContext context)
     {
@@ -293,19 +316,19 @@ public override Object? VisitVariables(LanguageParser.VariablesContext context)
 
 public override Object? VisitAssign(LanguageParser.AssignContext context)
 {
-    var assignee = context.expr(0);
-    if (assignee is LanguageParser.IdexpresionContext idContext)
-    {
-        string varName = idContext.ID().GetText();
-        c.Comment($"Assignment to variable: {varName}");
+    var assignee = context.ID().GetText();
+    var op = context.op.Text;
+    if (op == "=")
 
-        Visit(context.expr(1)); // Evalua la expresión del lado derecho
+    {
+        c.Comment($"Assignment to variable: {assignee}");
+
+        Visit(context.expr()); // Evalúa la expresión del lado derecho
 
         var valueObject = c.PopObject(Register.X0); // Obtiene el valor a asignar
 
-        var (offset, varObject) = c.GetObject(varName);
+        var (offset, varObject) = c.GetObject(assignee);
 
-        c.Comment($"Storing value in variable {varName} at offset {offset}");
         c.Mov(Register.X1, offset); // Mueve el offset al registro X1
         c.Add(Register.X1, Register.SP, Register.X1); // Calcula la dirección en la pila
         c.Str(Register.X0, Register.X1); // Almacena el valor en la dirección calculada
@@ -318,7 +341,6 @@ public override Object? VisitAssign(LanguageParser.AssignContext context)
     }
     return null;
 }
-
 
 
     // public override Object? VisitAsignarSliceCompleto(LanguageParser.AsignarSliceCompletoContext context)
@@ -638,7 +660,12 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
         return null;
     }
 
-    public override Object? VisitForCondicion(LanguageParser.ForCondicionContext context)
+    // public override Object? VisitForCondicion(LanguageParser.ForCondicionContext context)
+    // {
+    // }
+
+
+    public override Object? VisitForincicializacion(LanguageParser.ForincicializacionContext context)
     {
         var startLabel = c.GetLabel();
         var endLabel = c.GetLabel();
@@ -658,6 +685,7 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
         Visit(context.expr(0)); // Visit the condition expression
         c.PopObject(Register.X0); // Pop the value to check the condition
         c.Cbz(Register.X0, endLabel); // Check if the condition is false
+
         Visit(context.instruccion()); // Visit the instruction block
         c.SetLabel(incrementLabel); // Set the increment label
         Visit(context.expr(1)); // Visit the increment expression
@@ -669,21 +697,14 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
 
         if (bytesToRemove > 0)
         {
-            c.Comment($"Removing {bytesToRemove} bytes from the stack");
             c.Mov(Register.X0, bytesToRemove); // Move the number of bytes to remove to X0
             c.Add(Register.SP, Register.SP, Register.X0); // Adjust the stack pointer
-            c.Comment($"Stack pointer adjusted by {bytesToRemove} bytes");
         }
         continueLabel = prevContinueLabel; // Restore the previous continue label
         breakLabel = prevBreakLabel; // Restore the previous break label
         return null;
+
     }
-
-
-    // public override Object? VisitForincicializacion(LanguageParser.ForincicializacionContext context)
-    // {
-    //     return null;
-    // }
 
     // public override Object? VisitForRange(LanguageParser.ForRangeContext context)
     // {

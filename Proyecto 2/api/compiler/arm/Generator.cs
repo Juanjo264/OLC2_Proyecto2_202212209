@@ -118,8 +118,12 @@ public void PrintFloat()
 
 public StackObject PopObject(string rd)
 {
-
-
+    
+    if (stack.Count == 0)
+    {
+        throw new InvalidOperationException("Stack is empty. Cannot pop an object.");
+    }
+    
     var obj = stack.Last();
     stack.RemoveAt(stack.Count - 1);
 
@@ -220,6 +224,8 @@ public int EndScope()
   public void TagObject(string id)
   {
     stack.Last().Id = id;
+        Console.WriteLine($"Tagging object with id: {id}, stack count: {stack.Count}");
+
   }
 
 public (int, StackObject) GetObject(string id)
@@ -227,14 +233,17 @@ public (int, StackObject) GetObject(string id)
     int byteOffset = 0;
     for (int i = stack.Count - 1; i >= 0; i--)
     {
+        Console.WriteLine($"Checking object {stack[i].Id} at offset {byteOffset}, length {stack[i].Length}");
         if (stack[i].Id == id)
         {
+            Console.WriteLine($"Found {id} at offset {byteOffset}");
             return (byteOffset, stack[i]); // Devuelve el offset y el objeto encontrado
         }
         byteOffset += stack[i].Length; // Incrementa el offset según el tamaño del objeto
     }
     throw new Exception($"Object {id} not found in stack");
 }
+
 
   public void Add(string rd, string rs1, string rs2)
   {

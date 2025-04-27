@@ -133,6 +133,18 @@ public interface ILanguageListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitExprecionInstruccion([NotNull] LanguageParser.ExprecionInstruccionContext context);
 	/// <summary>
+	/// Enter a parse tree produced by the <c>BloqueInstrucciones</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterBloqueInstrucciones([NotNull] LanguageParser.BloqueInstruccionesContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>BloqueInstrucciones</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitBloqueInstrucciones([NotNull] LanguageParser.BloqueInstruccionesContext context);
+	/// <summary>
 	/// Enter a parse tree produced by the <c>BreakInstruccion</c>
 	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
 	/// </summary>
@@ -181,18 +193,6 @@ public interface ILanguageListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitPrintInstruccion([NotNull] LanguageParser.PrintInstruccionContext context);
 	/// <summary>
-	/// Enter a parse tree produced by the <c>BloqueInstrucciones</c>
-	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterBloqueInstrucciones([NotNull] LanguageParser.BloqueInstruccionesContext context);
-	/// <summary>
-	/// Exit a parse tree produced by the <c>BloqueInstrucciones</c>
-	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitBloqueInstrucciones([NotNull] LanguageParser.BloqueInstruccionesContext context);
-	/// <summary>
 	/// Enter a parse tree produced by the <c>IfInstruccion</c>
 	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
 	/// </summary>
@@ -240,6 +240,30 @@ public interface ILanguageListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitForCondicion([NotNull] LanguageParser.ForCondicionContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>Forincicializacion</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterForincicializacion([NotNull] LanguageParser.ForincicializacionContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>Forincicializacion</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitForincicializacion([NotNull] LanguageParser.ForincicializacionContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>ForRange</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterForRange([NotNull] LanguageParser.ForRangeContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ForRange</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitForRange([NotNull] LanguageParser.ForRangeContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LanguageParser.forInit"/>.
 	/// </summary>

@@ -158,6 +158,20 @@ public partial class LanguageBaseListener : ILanguageListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitExprecionInstruccion([NotNull] LanguageParser.ExprecionInstruccionContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by the <c>BloqueInstrucciones</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterBloqueInstrucciones([NotNull] LanguageParser.BloqueInstruccionesContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>BloqueInstrucciones</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitBloqueInstrucciones([NotNull] LanguageParser.BloqueInstruccionesContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by the <c>BreakInstruccion</c>
 	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -214,20 +228,6 @@ public partial class LanguageBaseListener : ILanguageListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitPrintInstruccion([NotNull] LanguageParser.PrintInstruccionContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by the <c>BloqueInstrucciones</c>
-	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterBloqueInstrucciones([NotNull] LanguageParser.BloqueInstruccionesContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by the <c>BloqueInstrucciones</c>
-	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitBloqueInstrucciones([NotNull] LanguageParser.BloqueInstruccionesContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by the <c>IfInstruccion</c>
 	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -283,6 +283,34 @@ public partial class LanguageBaseListener : ILanguageListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitForCondicion([NotNull] LanguageParser.ForCondicionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>Forincicializacion</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterForincicializacion([NotNull] LanguageParser.ForincicializacionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>Forincicializacion</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitForincicializacion([NotNull] LanguageParser.ForincicializacionContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>ForRange</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterForRange([NotNull] LanguageParser.ForRangeContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ForRange</c>
+	/// labeled alternative in <see cref="LanguageParser.instruccion"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitForRange([NotNull] LanguageParser.ForRangeContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="LanguageParser.forInit"/>.
 	/// <para>The default implementation does nothing.</para>
