@@ -40,12 +40,14 @@ structdcl: 'type' ID 'struct' '{' structBody* '}' ;
 structBody: variables | funcdlc | ID tipo ;
  
 
-funcdlc:  'func' '(' ID ID ')' ID '(' params? ')' tipo? '{' listainstrucciones* '}'  
-| 'func' ID '(' params? ')' tipo? '{' listainstrucciones* '}' ;
+funcdlc: 'function' ID '(' params? ')' ':' ID '{' listainstrucciones* '}'
+;
+//  | 'func' '(' ID ID ')' ID '(' params? ')' tipo? '{' listainstrucciones* '}'  
+// | 'func' ID '(' params? ')' tipo? '{' listainstrucciones* '}' ;
 
 params: param (',' param)* ;
-param: ID tipo ; 
-
+param: ID ':' ID 
+;
 
 instruccion:  expr  #ExprecionInstruccion 
 | '{' listainstrucciones* '}' #BloqueInstrucciones

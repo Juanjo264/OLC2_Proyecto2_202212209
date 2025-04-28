@@ -6,7 +6,7 @@ using System.Xml.Serialization;
 
 public class StackObject
 {
-  public enum StackObjectType {Int, Float, String, Bool}
+  public enum StackObjectType {Int, Float, String, Bool, Undefined}
 
   public StackObjectType Type { get; set; }
   public int Length { get; set; }
@@ -14,11 +14,15 @@ public class StackObject
   public int Depth { get; set; }
 
   public string? Id { get; set; }
+
+  public int Offset { get; set; }
 }
 
 public class ArmGenerator
 {
-  public readonly List<string> instructions = new List<string>();
+  public  List<string> instructions = new List<string>();
+
+  public List<string> funcInstructions = new List<string>();
 
   private readonly StandardLibrary stdlib = new StandardLibrary();
 
@@ -130,6 +134,21 @@ public StackObject PopObject(string rd)
     Pop(rd);
     return obj;
 }   
+
+public void PopObject()
+{
+    
+    try{
+    stack.RemoveAt(stack.Count - 1);
+
+    }
+    catch (System.Exception)
+    {
+        Console.WriteLine("Error al eliminar el objeto de la pila: "+ stack.Count);
+        throw new Exception("Error al eliminar el objeto de la pila: "+ stack.Count);
+    }
+}   
+
 
   public StackObject IntObject()
   {
@@ -283,6 +302,11 @@ public (int, StackObject) GetObject(string id)
         instructions.Add($"LDR {rd}, [{rs1}, #{offset}]");
     }
 
+    public void Br (string label)
+    {
+        instructions.Add($"BR {label}");
+    }
+    
     public void Mov(string rd, int imm)
     {
         instructions.Add($"MOV {rd}, #{imm}");
@@ -463,4 +487,14 @@ public void Ret()
 {
     instructions.Add($"RET"); 
 }
+
+public StackObject GetFrameLocal(int index)
+{
+  var obj = stack.Where(o => o.Type == StackObject.StackObjectType.Undefined).ToList()[index];
+  return obj; 
+}
+
+
+
+
 }
