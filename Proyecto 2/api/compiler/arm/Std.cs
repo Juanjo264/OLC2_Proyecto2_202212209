@@ -18,6 +18,11 @@ public class StandardLibrary
             UsedSymbols.Add("dot_char");
             UsedSymbols.Add("zero_char");
         }
+            else if (function == "print_newline")
+        {
+           UsedSymbols.Add("newline_char");
+        }
+
     }
 
     public string GetFunctionDefinitions()
@@ -297,12 +302,24 @@ exit_function:
     ldp x29, x30, [sp], #16
     ret
     "},
+    {"print_newline", @"
+    print_newline:
+        mov x0, #1
+        adr x1, newline_char
+        mov x2, #1
+        mov w8, #64
+        svc #0
+        ret
+    " 
+    },
     };
 
     private readonly static Dictionary<string, string> Symbols = new Dictionary<string, string>
     {
         { "minus_sign", @"minus_sign: .ascii ""-""" },
         { "dot_char", @"dot_char: .ascii "".""" },
-        { "zero_char", @"zero_char: .ascii ""0""" }
+        { "zero_char", @"zero_char: .ascii ""0""" },
+        { "newline_char", @"newline_char: .ascii ""\n""" }
+
     };
 }

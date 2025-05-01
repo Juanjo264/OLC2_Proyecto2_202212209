@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\juanj\\Desktop\\Compi 2\\P2\\OLC2_Proyecto2_202212209\\Proyecto 2\\api\\api.csproj": {}
+    "/home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/api.csproj": {}
   },
   "projects": {
-    "C:\\Users\\juanj\\Desktop\\Compi 2\\P2\\OLC2_Proyecto2_202212209\\Proyecto 2\\api\\api.csproj": {
+    "/home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\juanj\\Desktop\\Compi 2\\P2\\OLC2_Proyecto2_202212209\\Proyecto 2\\api\\api.csproj",
+        "projectUniqueName": "/home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/api.csproj",
         "projectName": "api",
-        "projectPath": "C:\\Users\\juanj\\Desktop\\Compi 2\\P2\\OLC2_Proyecto2_202212209\\Proyecto 2\\api\\api.csproj",
-        "packagesPath": "C:\\Users\\juanj\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\juanj\\Desktop\\Compi 2\\P2\\OLC2_Proyecto2_202212209\\Proyecto 2\\api\\obj\\",
+        "projectPath": "/home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/api.csproj",
+        "packagesPath": "/home/juanjo/.nuget/packages/",
+        "outputPath": "/home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\juanj\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/home/juanjo/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
@@ -38,7 +38,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "9.0.100"
+        "SdkAnalysisLevel": "9.0.200"
       },
       "frameworks": {
         "net9.0": {
@@ -72,7 +72,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.102/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/usr/share/dotnet/sdk/9.0.202/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

@@ -1,4 +1,4 @@
-// Generated from c:/Users/juanj/Desktop/Compi 2/P2/OLC2_Proyecto2_202212209/Proyecto 2/api/Language.g4 by ANTLR 4.13.1
+// Generated from /home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/Language.g4 by ANTLR 4.13.1
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 /**
@@ -109,6 +109,18 @@ public interface LanguageListener extends ParseTreeListener {
 	 */
 	void exitExprecionInstruccion(LanguageParser.ExprecionInstruccionContext ctx);
 	/**
+	 * Enter a parse tree produced by the {@code BloqueInstrucciones}
+	 * labeled alternative in {@link LanguageParser#instruccion}.
+	 * @param ctx the parse tree
+	 */
+	void enterBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext ctx);
+	/**
+	 * Exit a parse tree produced by the {@code BloqueInstrucciones}
+	 * labeled alternative in {@link LanguageParser#instruccion}.
+	 * @param ctx the parse tree
+	 */
+	void exitBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext ctx);
+	/**
 	 * Enter a parse tree produced by the {@code BreakInstruccion}
 	 * labeled alternative in {@link LanguageParser#instruccion}.
 	 * @param ctx the parse tree
@@ -156,18 +168,6 @@ public interface LanguageListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitPrintInstruccion(LanguageParser.PrintInstruccionContext ctx);
-	/**
-	 * Enter a parse tree produced by the {@code BloqueInstrucciones}
-	 * labeled alternative in {@link LanguageParser#instruccion}.
-	 * @param ctx the parse tree
-	 */
-	void enterBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext ctx);
-	/**
-	 * Exit a parse tree produced by the {@code BloqueInstrucciones}
-	 * labeled alternative in {@link LanguageParser#instruccion}.
-	 * @param ctx the parse tree
-	 */
-	void exitBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext ctx);
 	/**
 	 * Enter a parse tree produced by the {@code IfInstruccion}
 	 * labeled alternative in {@link LanguageParser#instruccion}.

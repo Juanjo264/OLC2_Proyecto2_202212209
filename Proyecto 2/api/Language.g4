@@ -31,7 +31,9 @@ program: listainstrucciones* ;
 
 listainstrucciones : variables |instruccion | structdcl | funcdlc ;
 
-variables: 'var' ID tipo IGUAL expr
+variables: 'var' ID tipo IGUAL expr #declaracionVar
+| ID DOSPUNTOS_IGUAL expr      #declaracionImplicita 
+
 ;
 fila: '{' expr (',' expr)* ','?'}' ;
 
@@ -40,27 +42,30 @@ structdcl: 'type' ID 'struct' '{' structBody* '}' ;
 structBody: variables | funcdlc | ID tipo ;
  
 
-funcdlc: 'function' ID '(' params? ')' ':' ID '{' listainstrucciones* '}'
+funcdlc: 'function' ID '(' params? ')' ':' tipo '{' listainstrucciones* '}'
 ;
+
 //  | 'func' '(' ID ID ')' ID '(' params? ')' tipo? '{' listainstrucciones* '}'  
 // | 'func' ID '(' params? ')' tipo? '{' listainstrucciones* '}' ;
 
 params: param (',' param)* ;
-param: ID ':' ID 
+param: ID ':' tipo 
 ;
 
 instruccion:  expr  #ExprecionInstruccion 
-| '{' listainstrucciones* '}' #BloqueInstrucciones
-|'break' #BreakInstruccion
-|'continue' #ContinueInstruccion
-|'return' expr? #ReturnInstruccion
 | print #PrintInstruccion
-| 'if'  expr  instruccion ('else' instruccion)? #IfInstruccion
+| '{' listainstrucciones* '}' #BloqueInstrucciones
+| 'if'  '(' expr ')'   instruccion ('else' instruccion)? #IfInstruccion
 | 'while' '(' expr ')' instruccion #WhileInstruccion
 | 'switch'  expr  '{' cases* (defaultCase)? '}'  #SwitchInstruccion
 | 'for' expr instruccion  #ForCondicion
 | 'for' forInit ';' expr ';' expr instruccion #Forincicializacion
 | 'for' ID ',' ID DOSPUNTOS_IGUAL 'range' ID instruccion #ForRange
+|'break' #BreakInstruccion
+|'continue' #ContinueInstruccion
+
+|'return' expr? #ReturnInstruccion
+
 
 ;
 
@@ -76,8 +81,7 @@ defaultCase:
     ;
 
 expr:
-	'(' expr ')'			# Parens
-	| expr call+  #Callee
+	 expr call+  #Callee
 	| ID LLAVE_ABRE camposStruct LLAVE_CIERRA   # InstanciaStruct
 	| '!' right=expr #operadorNegacion
 	|'-' expr                   	  # Negate
@@ -90,7 +94,7 @@ expr:
   | expr '[' expr ']' '[' expr ']'  #AccesoSliceMulti
 	| expr '[' expr ']'  #AccesoSlice
 	| expr	op = ('&&' | '||' ) expr	# Logicos
-	| ID op ='=' expr								# Assign
+	| ID '=' expr								# Assign
 	| BOOL										# Boolean
 
 	| FLOAT					      # Float
@@ -101,6 +105,8 @@ expr:
 	| ID #Idexpresion
 	| ID ('++' | '--') # IncrementoDecremento 
 	| 'nil' #nilExpresion
+	|	'(' expr ')'			# Parens
+
 ; 
 camposStruct: campoStruct (',' campoStruct)* (',')? ;
 campoStruct: ID ':' expr ;

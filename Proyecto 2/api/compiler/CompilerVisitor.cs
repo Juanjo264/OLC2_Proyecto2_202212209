@@ -46,9 +46,9 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
     public ArmGenerator c = new ArmGenerator();
     
     private Dictionary<string, FunctionMetadata> functions = new Dictionary<string, FunctionMetadata>();
-    private String? continueLabel = null;
-    private String? breakLabel = null;
-    private String? returnLabel = null;
+    private String continueLabel = "";
+    private String breakLabel = "";
+    private String returnLabel = "";
     
     private String? insideFunction = null;
     private int framePointerOffset = 0;
@@ -106,10 +106,14 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
         {
             c.PrintString(Register.X0);
         }
+        
+        c.PrintNewline();
 
 
         return null;
     }
+
+    
     public override Object? VisitIdexpresion(LanguageParser.IdexpresionContext context)
     {
         var id = context.ID().GetText();
@@ -265,8 +269,9 @@ public override object? VisitAddSub(LanguageParser.AddSubContext context)
         }
         else if (operation == "-")
         {
-            c.Sub(Register.X0, Register.X0, Register.X1); // Resta entera
+            c.Sub(Register.X0, Register.X1, Register.X0); // left - right ✅
         }
+
 
         c.Comment("Pushing integer result");
         c.Push(Register.X0);
@@ -355,18 +360,19 @@ public override Object? VisitVariables(LanguageParser.VariablesContext context)
 
 public override Object? VisitAssign(LanguageParser.AssignContext context)
 {
-    var assignee = context.ID().GetText();
-    var op = context.op.Text;
-    if (op == "=")
+    var assignee = context.ID();
 
+    if (assignee is LanguageParser.IdexpresionContext idContext)
+    
     {
         c.Comment($"Assignment to variable: {assignee}");
 
-        Visit(context.expr()); // Evalúa la expresión del lado derecho
+        string varName = idContext.ID().GetText();
+        Visit(context.expr()); // Evalúa la expresión de asignación
 
         var valueObject = c.PopObject(Register.X0); // Obtiene el valor a asignar
 
-        var (offset, varObject) = c.GetObject(assignee);
+        var (offset, varObject) = c.GetObject(varName);
 
         if (insideFunction != null)
         {
@@ -770,6 +776,32 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
 
     public override Object? VisitReturnInstruccion(LanguageParser.ReturnInstruccionContext context)
     {
+        c.Comment("Return statement");
+        if (context.expr() == null)
+        {
+            c.Br(returnLabel); // Jump to the return label
+            return null;
+
+        }
+        
+        if (insideFunction == null)
+        {
+            throw new Exception("Error semántico: La instrucción return solo se puede usar dentro de una función");
+        }
+
+        Visit(context.expr()); // Visit the return expression
+        c.PopObject(Register.X0); // Pop the return value into X0
+
+        c.Comment("Storing return value");
+        var frameSize = functions[insideFunction].FrameSize; // Tamaño del marco de pila
+        var returnOffset = frameSize - 1; // Desplazamiento para el valor de retorno
+        c.Mov(Register.X1, returnOffset * 8); // Calcula el desplazamiento
+        c.Sub(Register.X1, Register.FP, Register.X1); // Dirección en el marco de pila
+        c.Str(Register.X0, Register.X1); // Almacena el valor de retorno
+
+        c.Comment("Jumping to return label");
+        c.B(returnLabel); // Salta a la etiqueta de retorno
+
         return null;
     }
 
@@ -812,20 +844,53 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
         }
 
         c.Comment($"Calling function {funcName}");
+
+        c.Mov(Register.X0, stackelementSize * (baseOffset + callContext.args().expr().Length)); // Move the number of arguments to X0
+        c.Add(Register.SP, Register.SP, Register.X0); // Adjust the stack pointer
+
+        c.Mov(Register.X0, stackelementSize);
+        c.Sub(Register.X0, Register.SP, Register.X0); // Calculate the address in the stack frame
+
+        c.Adr(Register.X1, postFuncCallLabel); // Load the address into X0
+        c.Push(Register.X1); // Push the address onto the stack
+
+        c.Push(Register.FP); // Push the frame pointer onto the stack
+        c.Add(Register.FP, Register.X0, Register.XZR); // Set the frame pointer to the current stack pointer
+
         int frameSize = functions[funcName].FrameSize; // Get the frame size of the function
         c.Mov(Register.X0, (frameSize -2) * stackelementSize); // Move the frame size to X0
         c.Sub(Register.SP, Register.SP, Register.X0); // Adjust the stack pointer
 
-        
+        c.Comment($"Calling function {funcName}");
         c.Bl(funcName); // Branch to the function  
+        c.Comment($"Function {funcName} returned");
         c.SetLabel(postFuncCallLabel); // Set the post function call label
 
         var returnOffset = frameSize - 1; // Get the return offset
+        c.Mov(Register.X4, returnOffset * stackelementSize);
+        c.Sub(Register.X4, Register.FP, Register.X4); // Calculate the address in the stack frame
+        c.Ldr(Register.X4, Register.X4); // Load the return value into X0
+
+        c.Mov(Register.X1, stackelementSize);
+        c.Sub(Register.X1, Register.FP, Register.X1); // Calculate the address in the stack frame
+        c.Ldr(Register.FP, Register.X1); // Load the return address into X0
+
+        c.Mov(Register.X0, stackelementSize * frameSize); // Move the frame size to X0
+        c.Add(Register.SP, Register.SP, Register.X0); // Adjust the stack pointer
+
+        c.Push(Register.X4); // Push the return value onto the stack
+        c.PushObject(new StackObject
+        {
+            Type = functions[funcName].ReturnType,
+            Id = null,
+            Offset = 0,
+            Length = 8,
+        }); // Push the return object onto the stack
 
         return null;
     }
 
-    public override Object? VisitFuncdlc(LanguageParser.FuncdlcContext context)
+public override Object? VisitFuncdlc(LanguageParser.FuncdlcContext context)
     {
 
         int baseOffset = 2;
@@ -849,8 +914,8 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
 
         int totalFrameSize = baseOffset + paramsOffset + localOffset + returnOffset;
 
-        string funcName = context.ID(0).GetText();
-        StackObject.StackObjectType funcType = GetType(context.ID(1).GetText());
+        string funcName = context.ID().GetText();
+        StackObject.StackObjectType funcType = GetType(context.tipo().GetText());
 
         functions.Add(funcName, new FunctionMetadata
         {
@@ -867,8 +932,8 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
         {
             c.PushObject(new StackObject
             {
-                Type = GetType(param.ID(1).GetText()),
-                Id = param.ID(0).GetText(),
+                Type = GetType(param.tipo().GetText()),
+                Id = param.ID().GetText(),
                 Offset = paramCount + baseOffset,
                 Length = 8,
             });
@@ -901,20 +966,20 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
 
         c.SetLabel(returnLabel); // Set the return label
 
-        c.Add(Register.X0, Register.FP, Register.X0); // Add the stack pointer to the return address
+        c.Add(Register.X0, Register.FP, Register.XZR); // Add the stack pointer to the return address
         c.Ldr(Register.LR, Register.X0); // Load the return address into X0
         c.Br(Register.LR); // Branch to the return address
 
         c.Comment($"Function {funcName} frame size: {totalFrameSize} bytes");
 
-        for (int i = 0; i < paramsOffset; i++)
+        for (int i = 0; i < paramsOffset + localOffset; i++)
         {
             c.PopObject(); // Pop the parameter from the stack
         }
 
         foreach (var instruccion in c.instructions)
         {
-            prevInstruction.Add(instruccion); // Add the instruction to the previous list
+            c.funcInstructions.Add(instruccion); // Add the instruction to the function instructions
         }
 
         c.instructions = prevInstruction; // Restore the previous instruction list

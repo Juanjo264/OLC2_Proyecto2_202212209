@@ -1,4 +1,4 @@
-// Generated from c:/Users/juanj/Desktop/Compi 2/P2/OLC2_Proyecto2_202212209/Proyecto 2/api/Language.g4 by ANTLR 4.13.1
+// Generated from /home/juanjo/compi2/OLC2_Proyecto2_202212209/Proyecto 2/api/Language.g4 by ANTLR 4.13.1
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
@@ -136,6 +136,18 @@ public class LanguageBaseListener implements LanguageListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterBreakInstruccion(LanguageParser.BreakInstruccionContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -179,18 +191,6 @@ public class LanguageBaseListener implements LanguageListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitPrintInstruccion(LanguageParser.PrintInstruccionContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

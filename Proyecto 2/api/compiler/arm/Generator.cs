@@ -123,13 +123,8 @@ public void PrintFloat()
 public StackObject PopObject(string rd)
 {
     
-    if (stack.Count == 0)
-    {
-        throw new InvalidOperationException("Stack is empty. Cannot pop an object.");
-    }
-    
     var obj = stack.Last();
-    stack.RemoveAt(stack.Count - 1);
+    PopObject();
 
     Pop(rd);
     return obj;
@@ -301,6 +296,16 @@ public (int, StackObject) GetObject(string id)
     {
         instructions.Add($"LDR {rd}, [{rs1}, #{offset}]");
     }
+  
+    public void Adr(string rd, string label)
+    {
+        instructions.Add($"ADR {rd}, {label}");
+    }
+
+    public void Bl(string label)
+    {
+        instructions.Add($"BL {label}");
+    }
 
     public void Br (string label)
     {
@@ -398,6 +403,12 @@ public void Mov(string rd, string rs)
         instructions.Add($"BL print_string"); 
     }
 
+        public void PrintNewline()
+    {
+        stdlib.Use("print_newline");
+    instructions.Add("bl print_newline");
+    }
+
     public void Comment(string comment)
     {
         instructions.Add($"// {comment}");
@@ -420,6 +431,9 @@ public void Mov(string rd, string rs)
         {
             sb.AppendLine(instruction);
         }
+
+        sb.AppendLine("\n\n\n // Foreign functions");
+        funcInstructions.ForEach(i => sb.AppendLine(i)); // Add foreign functions at the end
         
         sb.AppendLine("\n\n\n // Standard Library Functions");
         sb.AppendLine(stdlib.GetFunctionDefinitions()); // Add standard library functions at the end
