@@ -574,20 +574,6 @@ public partial class LanguageBaseListener : ILanguageListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitNilExpresion([NotNull] LanguageParser.NilExpresionContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by the <c>ModuleFuncCall</c>
-	/// labeled alternative in <see cref="LanguageParser.expr"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterModuleFuncCall([NotNull] LanguageParser.ModuleFuncCallContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by the <c>ModuleFuncCall</c>
-	/// labeled alternative in <see cref="LanguageParser.expr"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitModuleFuncCall([NotNull] LanguageParser.ModuleFuncCallContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by the <c>Float</c>
 	/// labeled alternative in <see cref="LanguageParser.expr"/>.
 	/// <para>The default implementation does nothing.</para>

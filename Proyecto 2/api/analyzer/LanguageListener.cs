@@ -489,18 +489,6 @@ public interface ILanguageListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitNilExpresion([NotNull] LanguageParser.NilExpresionContext context);
 	/// <summary>
-	/// Enter a parse tree produced by the <c>ModuleFuncCall</c>
-	/// labeled alternative in <see cref="LanguageParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterModuleFuncCall([NotNull] LanguageParser.ModuleFuncCallContext context);
-	/// <summary>
-	/// Exit a parse tree produced by the <c>ModuleFuncCall</c>
-	/// labeled alternative in <see cref="LanguageParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitModuleFuncCall([NotNull] LanguageParser.ModuleFuncCallContext context);
-	/// <summary>
 	/// Enter a parse tree produced by the <c>Float</c>
 	/// labeled alternative in <see cref="LanguageParser.expr"/>.
 	/// </summary>

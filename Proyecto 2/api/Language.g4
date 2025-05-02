@@ -43,15 +43,13 @@ structdcl: 'type' ID 'struct' '{' structBody* '}' ;
 structBody: variables | funcdlc | ID tipo ;
  
 
-funcdlc: 'function' ID '(' params? ')' ':' tipo '{' listainstrucciones* '}'
-;
-
-//  | 'func' '(' ID ID ')' ID '(' params? ')' tipo? '{' listainstrucciones* '}'  
-// | 'func' ID '(' params? ')' tipo? '{' listainstrucciones* '}' ;
+funcdlc: 'func' ID '(' params? ')' tipo '{' listainstrucciones* '}'
+ | 'func' ID '(' params? ')' tipo? '{' listainstrucciones* '}' ;
 
 params: param (',' param)* ;
-param: ID ':' tipo 
+param: ID  tipo 
 ;
+//  | 'func' '(' ID ID ')' ID '(' params? ')' tipo? '{' listainstrucciones* '}'  
 
 instruccion:  expr  #ExprecionInstruccion 
 | print #PrintInstruccion
@@ -82,12 +80,12 @@ defaultCase:
     ;
 
 expr:
-	'(' expr ')'			# Parens
-	| expr call+  #Callee
+	 expr call+  #Callee
+
+	|'(' expr ')'			# Parens
 	| ID LLAVE_ABRE camposStruct LLAVE_CIERRA   # InstanciaStruct
 	| '!' right=expr #operadorNegacion
 	|'-' expr                   	  # Negate
-	| expr '.' ID '(' args? ')'             # ModuleFuncCall
 	| expr op =  ('*' | '/') expr	# MulDiv
 	| expr op = '%' expr	# Mod
 	| expr  op = ('+' | '-') expr	# AddSub
@@ -125,7 +123,7 @@ args: expr (',' expr)* ;
 // 					| expr IGUAL expr (';')? #asignarVar 
 // 					;
 
-print: 'print' PIZQ impresiones PDER ;
+print: 'fmt.Println' PIZQ impresiones PDER ;
 
 impresiones: impresiones ',' expr
 	| expr;

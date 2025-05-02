@@ -6,7 +6,7 @@ using System.Xml.Serialization;
 
 public class StackObject
 {
-  public enum StackObjectType {Int, Float, String, Bool, Undefined, Char}
+  public enum StackObjectType {Int, Float, String, Bool, Undefined, Char, Void}
 
   public StackObjectType Type { get; set; }
   public int Length { get; set; }
@@ -36,6 +36,11 @@ public int CurrentDepth => depth;
   {
     return $"L{labelCounter++}";
   }
+    public void AddFrameLocal(string name, StackObject obj)
+    {
+        obj.Type = StackObject.StackObjectType.Undefined; // Inicialmente undefined
+        stack.Add(obj);
+    }
 
   public void SetLabel(string label)
   {
@@ -84,7 +89,7 @@ case StackObject.StackObjectType.Float:
             instructions.Add($"MOVK X0, #{part}, LSL #{i * 16}");
     }
 
-    Push(Register.X0); // Guarda en la pila normal (puedes usar STR D0 si prefieres, pero X0 es suficiente)
+    Push(Register.X0); 
     break;
 
 
@@ -424,32 +429,34 @@ public void Mov(string rd, string rs)
         instructions.Add($"// {comment}");
     }
     
-    public override string ToString()
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine(".data");
-        sb.AppendLine("heap: .space 4096"); // Reserve 4096 bytes for heap 
-        sb.AppendLine(".text");
-        sb.AppendLine(".global _start");
-        sb.AppendLine("_start:");
-        sb.AppendLine("    adr x10, heap"); // Load address of heap into x10
-         
+  public override string ToString()
+  {
+      var sb = new StringBuilder();
+      sb.AppendLine(".data");
+      sb.AppendLine("heap: .space 4096"); // Reserve 4096 bytes for heap 
+      sb.AppendLine(".text");
+      sb.AppendLine(".global _start");
+      sb.AppendLine("_start:");
+      sb.AppendLine("    adr x10, heap"); // Load address of heap into x10
+      
+      // Agregar las instrucciones principales
+      foreach (var instruction in instructions)
+      {
+          sb.AppendLine(instruction);
+      }
 
+      // Agregar las funciones
+      sb.AppendLine("\n// Functions");
+      foreach (var instruction in funcInstructions)
+      {
+          sb.AppendLine(instruction);
+      }
 
-        Endprogram(); // Call Endprogram at the end of the program
-        foreach (var instruction in instructions)
-        {
-            sb.AppendLine(instruction);
-        }
-
-        sb.AppendLine("\n\n\n // Foreign functions");
-        funcInstructions.ForEach(i => sb.AppendLine(i)); // Add foreign functions at the end
-        
-        sb.AppendLine("\n\n\n // Standard Library Functions");
-        sb.AppendLine(stdlib.GetFunctionDefinitions()); // Add standard library functions at the end
-        return sb.ToString();
-    }
-
+      sb.AppendLine("\n// Standard Library");
+      sb.AppendLine(stdlib.GetFunctionDefinitions());
+      
+      return sb.ToString();
+  }
 
   //relacionales
 public void Cmp(string rs1, string rs2)

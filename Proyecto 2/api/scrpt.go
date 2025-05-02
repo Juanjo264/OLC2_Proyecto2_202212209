@@ -386,3 +386,154 @@ print("| Continue                 | ", puntosContinue, "    | 3     |")
 print("+--------------------------+--------+-------+")
 print("| TOTAL                    | ", puntos, "   | 25    |")
 print("+--------------------------+--------+-------+")
+
+-------------------------------------------------------------------------------------------
+
+=========================
+func ackermann  (m int , n int ) int {
+    if (m == 0) {
+        return n + 1
+    } else if (n == 0) {
+        return ackermann(m - 1, 1)
+    } else {
+        return ackermann(m - 1, ackermann(m, n - 1))
+    }
+}
+
+print(ackermann(3,4))
+======================================
+func saludar() {
+	print("¡Hola, mundo!")
+}
+
+func obtenerNumero() int {
+	return 42
+}
+func saludarPersona(nombre string) {
+	print("¡Hola,", nombre+"!")
+}
+
+func sumar(a int, b int) int {
+	return a + b
+}
+
+func factorial(n int) int {
+	if n <= 1 {
+		return 1
+	}
+	return n * factorial(n-1)
+}
+
+// func ackermann(m int, n int) int {
+// 	if m == 0 {
+// 		return n + 1
+// 	} else if m > 0 && n == 0 {
+// 		return ackermann(m-1, 1)
+// 	} else {
+// 		return ackermann(m-1, ackermann(m, n-1))
+// 	}
+// }
+
+// // Función recursiva: torres de Hanoi
+// func hanoi(n int, origen string, auxiliar string, destino string) {
+// 	if n == 1 {
+// 		print("Mover disco 1 de", origen, "a", destino)
+// 		return
+// 	}
+
+// 	hanoi(n-1, origen, destino, auxiliar)
+// 	print("Mover disco", n, "de", origen, "a", destino)
+// 	hanoi(n-1, auxiliar, origen, destino)
+// }
+
+	puntos := 0
+
+	print("=== Archivo de prueba de funciones ===")
+
+	// 1. Funciones no recursivas sin parámetros (5 punto)
+	print("==== Funciones no recursivas sin parámetros ====")
+	puntosFuncionesSimples := 0
+
+	print("Función sin retorno:")
+	print("\n\n###Validacion Manual")
+	saludar()
+
+	print("\nFunción con retorno:")
+	numero := obtenerNumero()
+	print("El número obtenido es:", numero)
+
+	if numero == 42 {
+		puntosFuncionesSimples = puntosFuncionesSimples + 5
+		print("OK Funciones no recursivas sin parámetros: correcto")
+	} else {
+		print("X Funciones no recursivas sin parámetros: incorrecto")
+	}
+
+	// 2. Funciones no recursivas con parámetros (5 puntos)
+	print("\n==== Funciones no recursivas con parámetros ====")
+	puntosFuncionesParametros := 0
+
+	print("Función con parámetros sin retorno:")
+	print("\n\n###Validacion Manual")
+	saludarPersona("Juan")
+
+	print("\nFunción con parámetros y retorno:")
+	resultadoSuma := sumar(10, 20)
+	print("La suma de 10 y 20 es:", resultadoSuma)
+
+	if resultadoSuma == 30 {
+		puntosFuncionesParametros = puntosFuncionesParametros + 5
+		print("OK Función con parámetros y retorno: correcto")
+	} else {
+		print("X Función con parámetros y retorno: incorrecto")
+	}
+
+	// 3. Funciones recursivas (10 puntos)
+	print("\n==== Funciones recursivas ====")
+	puntosFuncionesRecursivas := 0
+
+	print("Factorial:")
+	resultadoFactorial := factorial(5)
+	print("Factorial de 5:", resultadoFactorial)
+
+	if resultadoFactorial == 120 {
+		puntosFuncionesRecursivas = puntosFuncionesRecursivas + 3
+		print("OK Función factorial: correcto")
+	} else {
+		print("X Función factorial: incorrecto")
+	}
+
+	// print("\nTorres de Hanoi:")
+	// print("\n\n###Validacion Manual")
+	// hanoi(3, "A", "B", "C")
+	// puntosFuncionesRecursivas = puntosFuncionesRecursivas + 3
+
+	print("\nAckermann:")
+	// resultadoAckermann := ackermann(3, 2)
+	// print("Ackermann de (3, 2):", resultadoAckermann)
+
+	// if resultadoAckermann == 29 {
+	// 	puntosFuncionesRecursivas = puntosFuncionesRecursivas + 4
+	// 	print("OK Función ackermann: correcto")
+	// } else {
+	// 	print("X Función ackermann: incorrecto")
+	// }
+
+	// 4. strconv.Atoi (2 punto)
+	print("\n==== strconv.Atoi ====")
+	puntosAtoi := 0
+
+
+	puntos = puntosFuncionesSimples + puntosFuncionesParametros + puntosFuncionesRecursivas 
+		 
+
+	print("\n=== Tabla de Resultados ===")
+	print("+----------------------------------+--------+-------+")
+	print("| Característica                   | Puntos | Total |")
+	print("+----------------------------------+--------+-------+")
+	print("| Funciones sin parámetros         | ", puntosFuncionesSimples, "    | 5     |")
+	print("| Funciones con parámetros         | ", puntosFuncionesParametros, "    | 5     |")
+	print("| Funciones recursivas             | ", puntosFuncionesRecursivas, "   | 10    |")
+	print("+----------------------------------+--------+-------+")
+	print("| TOTAL                            | ", puntos, "   | 25    |")
+	print("+----------------------------------+--------+-------+")

@@ -393,6 +393,8 @@ public override object? VisitAddSub(LanguageParser.AddSubContext context)
 
     return null;
 } 
+
+
    public override Object? VisitMod(LanguageParser.ModContext context)
     {
     c.Comment("Operación módulo (int % int)");
@@ -610,21 +612,30 @@ public override Object? VisitOperadorNegacion(LanguageParser.OperadorNegacionCon
 {
     Visit(context.right);
 
-    var value = c.PopObject("X0");
+    var value = c.PopObject(Register.X0);
 
-    // Acepta tanto bool como int
-    var tiposValidos = new[] { StackObject.StackObjectType.Bool, StackObject.StackObjectType.Int };
-    if (!tiposValidos.Contains(value.Type))
-        throw new Exception("La negación lógica (!) solo se puede aplicar a booleanos (0 o 1)");
+    if (value.Type == StackObject.StackObjectType.Int)
+    {
+        // Conviértelo a booleano si es 0 o 1
+        c.Cmp(Register.X0, "0");
+        c.Cset(Register.X0, "EQ"); // X0 = 1 si era 0, X0 = 0 si era 1
+        c.Push(Register.X0);
+        c.PushObject(c.BoolObject());
+        return null;
+    }
 
-    c.Cmp("X0", "0");
-    c.Cset("X0", "EQ"); // EQ = igual, se activa si X0 == 0
+    if (value.Type == StackObject.StackObjectType.Bool)
+    {
+        c.Cmp(Register.X0, "0");
+        c.Cset(Register.X0, "EQ");
+        c.Push(Register.X0);
+        c.PushObject(c.BoolObject());
+        return null;
+    }
 
-    c.Push("X0");
-    c.PushObject(c.BoolObject()); // Resultado es booleano
-
-    return null;
+    throw new Exception($"La negación lógica (!) solo se puede aplicar a booleanos o enteros 0/1, no a: {value.Type}");
 }
+
 
 public override object? VisitRelational(LanguageParser.RelationalContext context)
 {
@@ -1102,12 +1113,10 @@ public override Object? VisitSwitchInstruccion(LanguageParser.SwitchInstruccionC
         var caseValueReg = Register.X0;
         c.PopObject(caseValueReg);
         
-        // Comparar el valor del switch con el valor del case
         c.Comment("Comparing switch value with case value");
         c.Cmp(switchValueReg, caseValueReg);
         c.Bne(nextLabel); // Si no son iguales, ir al siguiente caso
         
-        // Si son iguales, ejecutar las instrucciones del case
         c.Comment("Executing case block");
         foreach (var inst in caseCtx.listainstrucciones())
         {
@@ -1322,120 +1331,248 @@ public override Object? VisitBreakInstruccion(LanguageParser.BreakInstruccionCon
         return null;
     }
 
-    public override Object? VisitCallee(LanguageParser.CalleeContext context)
+
+
+// public override Object? VisitCallee(LanguageParser.CalleeContext context)
+// {
+//     Console.WriteLine("==> VisitCallee");
+//     if (context.expr() is not LanguageParser.IdexpresionContext idContext) return null;
+
+//     string funcName = idContext.ID().GetText();
+//     var call = context.call()[0];
+
+//     if (call is not LanguageParser.FuncCallContext callContext) return null;
+
+//     //TODO embeded
+
+//     var postFuncCallLabel = c.GetLabel(); // Get the label for the post function call
+
+//     int baseOffset = 2;
+//     int stackelementSize = 8;
+
+//     c.Mov(Register.X0, baseOffset * stackelementSize); // Move the base offset to X0
+//     c.Sub(Register.SP, Register.SP, Register.X0); // Calculate the address in the stack frame
+//     Console.WriteLine($"Base offset: {baseOffset * stackelementSize}");
+    
+//     // Procesar argumentos
+//     int argCount = 0;
+//     if (callContext.args() != null)
+//     {
+//         foreach (var arg in callContext.args().expr())
+//         {
+//             Visit(arg); // Visit each argument expression
+//         }
+//         argCount = callContext.args().expr().Length;
+//     }
+//     Console.WriteLine($"Arguments count: {argCount}");
+//     c.Comment($"Calling function {funcName}");
+
+//     c.Mov(Register.X0, stackelementSize * (baseOffset + argCount));
+//     c.Add(Register.SP, Register.SP, Register.X0); // Adjust the stack pointer
+
+//     c.Mov(Register.X0, stackelementSize);
+//     c.Sub(Register.X0, Register.SP, Register.X0); // Calculate the address in the stack frame
+
+//     c.Adr(Register.X1, postFuncCallLabel); // Load the address into X1
+//     c.Push(Register.X1); // Push the address onto the stack
+
+//     c.Push(Register.FP); // Push the frame pointer onto the stack
+//     c.Add(Register.FP, Register.X0, Register.XZR); // Set the frame pointer to the current stack pointer
+
+//     int frameSize = functions[funcName].FrameSize; // Get the frame size of the function
+//     c.Mov(Register.X0, (frameSize - 2) * stackelementSize); // Move the frame size to X0
+//     c.Sub(Register.SP, Register.SP, Register.X0); // Adjust the stack pointer
+
+//     c.Comment($"Calling function {funcName}");
+//     c.Bl(funcName); // Branch to the function  
+//     c.Comment($"Function {funcName} returned");
+//     c.SetLabel(postFuncCallLabel); // Set the post function call label
+
+//     var returnOffset = frameSize - 1; // Get the return offset
+//     c.Mov(Register.X4, returnOffset * stackelementSize);
+//     c.Sub(Register.X4, Register.FP, Register.X4); // Calculate the address in the stack frame
+//     c.Ldr(Register.X4, Register.X4); // Load the return value into X4
+
+//     // Restaurar el frame pointer
+//     c.Mov(Register.X1, stackelementSize);
+//     c.Sub(Register.X1, Register.FP, Register.X1); // Calculate the address in the stack frame
+//     c.Ldr(Register.FP, Register.X1); // Load the frame pointer
+
+//     // Ajustar el stack pointer para limpiar el frame
+//     c.Mov(Register.X0, stackelementSize * frameSize); // Move the frame size to X0
+//     c.Add(Register.SP, Register.SP, Register.X0); // Adjust the stack pointer
+
+//     // Guardar el valor de retorno en la pila y crear el objeto correspondiente
+//     c.Push(Register.X4); // Push the return value onto the stack
+//     c.PushObject(new StackObject
+//     {
+//         Type = functions[funcName].ReturnType,
+//         Id = null,
+//         Offset = 0,
+//         Length = 8,
+//     }); // Push the return object onto the stack
+
+//     return null;
+// }
+
+
+
+public override Object? VisitCallee(LanguageParser.CalleeContext context)
+{
+    Console.WriteLine("==> VisitCallee");
+    if (context.expr() is not LanguageParser.IdexpresionContext idContext) return null;
+
+    string funcName = idContext.ID().GetText();
+    var call = context.call()[0];
+
+    if (call is not LanguageParser.FuncCallContext callContext) return null;
+
+    c.Comment($"Preparando llamada a función {funcName}");
+    var postFuncCallLabel = c.GetLabel();
+
+    int baseOffset = 2;
+    int stackelementSize = 8;
+
+    // Reservar espacio para el frame base
+    c.Mov(Register.X0, baseOffset * stackelementSize);
+    c.Sub(Register.SP, Register.SP, Register.X0);
+    Console.WriteLine($"Base offset: {baseOffset * stackelementSize}");
+    
+    // Procesar y apilar argumentos
+    int argCount = 0;
+    if (callContext.args() != null)
     {
-        if (context.expr() is not LanguageParser.IdexpresionContext idContext) return null;
-
-        string funcName = idContext.ID().GetText();
-        var call = context.call()[0];
-
-        if (call is not LanguageParser.FuncCallContext callContext) return null;
-
-        //TODO embeded
-
-        var postFuncCallLabel = c.GetLabel(); // Get the label for the post function call
-
-        int baseOffset = 2;
-        int stackelementSize = 8;
-
-        c.Mov(Register.X0, baseOffset * stackelementSize); // Move the base offset to X0
-        c.Sub(Register.SP, Register.SP, Register.X0); // Calculate the address in the stack frame
-
-        if (callContext.args() != null)
+        foreach (var arg in callContext.args().expr())
         {
-            foreach (var arg in callContext.args().expr())
-            {
-                Visit(arg); // Visit each argument expression
-            }
+            Visit(arg);
         }
-
-        c.Comment($"Calling function {funcName}");
-
-        c.Mov(Register.X0, stackelementSize * (baseOffset + callContext.args().expr().Length)); // Move the number of arguments to X0
-        c.Add(Register.SP, Register.SP, Register.X0); // Adjust the stack pointer
-
-        c.Mov(Register.X0, stackelementSize);
-        c.Sub(Register.X0, Register.SP, Register.X0); // Calculate the address in the stack frame
-
-        c.Adr(Register.X1, postFuncCallLabel); // Load the address into X0
-        c.Push(Register.X1); // Push the address onto the stack
-
-        c.Push(Register.FP); // Push the frame pointer onto the stack
-        c.Add(Register.FP, Register.X0, Register.XZR); // Set the frame pointer to the current stack pointer
-
-        int frameSize = functions[funcName].FrameSize; // Get the frame size of the function
-        c.Mov(Register.X0, (frameSize -2) * stackelementSize); // Move the frame size to X0
-        c.Sub(Register.SP, Register.SP, Register.X0); // Adjust the stack pointer
-
-        c.Comment($"Calling function {funcName}");
-        c.Bl(funcName); // Branch to the function  
-        c.Comment($"Function {funcName} returned");
-        c.SetLabel(postFuncCallLabel); // Set the post function call label
-
-        var returnOffset = frameSize - 1; // Get the return offset
-        c.Mov(Register.X4, returnOffset * stackelementSize);
-        c.Sub(Register.X4, Register.FP, Register.X4); // Calculate the address in the stack frame
-        c.Ldr(Register.X4, Register.X4); // Load the return value into X0
-
-        c.Mov(Register.X1, stackelementSize);
-        c.Sub(Register.X1, Register.FP, Register.X1); // Calculate the address in the stack frame
-        c.Ldr(Register.FP, Register.X1); // Load the return address into X0
-
-        c.Mov(Register.X0, stackelementSize * frameSize); // Move the frame size to X0
-        c.Add(Register.SP, Register.SP, Register.X0); // Adjust the stack pointer
-
-        c.Push(Register.X4); // Push the return value onto the stack
-        c.PushObject(new StackObject
-        {
-            Type = functions[funcName].ReturnType,
-            Id = null,
-            Offset = 0,
-            Length = 8,
-        }); // Push the return object onto the stack
-
-        return null;
+        argCount = callContext.args().expr().Length;
     }
+    Console.WriteLine($"Arguments count: {argCount}");
+    
+    // Ajustar stack pointer después de argumentos
+    c.Mov(Register.X0, stackelementSize * (baseOffset + argCount));
+    c.Add(Register.SP, Register.SP, Register.X0);
+
+    // Calcular dirección base de frame
+    c.Mov(Register.X0, stackelementSize);
+    c.Sub(Register.X0, Register.SP, Register.X0);
+
+    // Guardar dirección de retorno y frame pointer anterior
+    c.Adr(Register.X1, postFuncCallLabel);
+    c.Push(Register.X1);
+    c.Push(Register.FP);
+    
+    // Actualizar frame pointer
+    c.Add(Register.FP, Register.X0, Register.XZR);
+
+    // Reservar espacio para variables locales
+    int frameSize = functions[funcName].FrameSize;
+    c.Mov(Register.X0, (frameSize - 2) * stackelementSize);
+    c.Sub(Register.SP, Register.SP, Register.X0);
+
+    // Llamar a la función
+    c.Comment($"Llamando a función {funcName}");
+    c.Bl(funcName);
+    
+    c.Comment($"Función {funcName} ha retornado");
+    c.SetLabel(postFuncCallLabel);
+
+    // Recuperar valor de retorno
+    var returnOffset = frameSize - 1;
+    c.Mov(Register.X4, returnOffset * stackelementSize);
+    c.Sub(Register.X4, Register.FP, Register.X4);
+    c.Ldr(Register.X4, Register.X4);
+
+    // Restaurar frame pointer anterior
+    c.Mov(Register.X1, stackelementSize);
+    c.Sub(Register.X1, Register.FP, Register.X1);
+    c.Ldr(Register.FP, Register.X1);
+
+    // Limpiar el frame completo
+    c.Mov(Register.X0, stackelementSize * frameSize);
+    c.Add(Register.SP, Register.SP, Register.X0);
+
+    // IMPORTANTE: Limpiar otros registros que podrían causar contaminación
+    // Esto es crítico para evitar que valores residuales afecten a otras variables
+    c.Mov(Register.X5, Register.XZR); // Limpiar X5 que podría estar causando el problema
+    c.Mov(Register.X6, Register.XZR); // Limpiar X6
+    c.Mov(Register.X7, Register.XZR); // Limpiar X7
+
+    // Apilar valor de retorno y crear objeto correspondiente
+    c.Push(Register.X4);
+    c.PushObject(new StackObject
+    {
+        Type = functions[funcName].ReturnType,
+        Id = null,
+        Offset = 0,
+        Length = 8,
+    });
+
+    // Limpiar el registro de retorno
+    c.Mov(Register.X4, Register.XZR);
+
+    return null;
+}
+
+// 2. Modificación en VisitFuncdlc - mejorando la gestión del retorno
 
 public override Object? VisitFuncdlc(LanguageParser.FuncdlcContext context)
+{
+    int baseOffset = 2;
+    int paramsOffset = 0;
+    Console.WriteLine("==> VisitFuncdlc");
+    
+    if (context.@params() != null)
     {
+        Console.WriteLine("Function has parameters");
+        paramsOffset = context.@params().param().Length;
+        Console.WriteLine($"Function has {paramsOffset} parameters");
+    }
 
-        int baseOffset = 2;
-        int paramsOffset = 0;
+    FrameVisitor frameVisitor = new FrameVisitor(baseOffset + paramsOffset);
 
-        if (context.@params() != null)
-        {
-            paramsOffset = context.@params().param().Length;
-        }
+    foreach (var listainstrucciones in context.listainstrucciones())
+    {
+        Console.WriteLine("Visiting function instructions");
+        frameVisitor.Visit(listainstrucciones);
+        Console.WriteLine("intrucciones visitadas");
+    }
 
-        FrameVisitor frameVisitor = new FrameVisitor(baseOffset + paramsOffset);
+    var frame = frameVisitor.Frame;
+    int localOffset = frame.Count;
+    int returnOffset = 1;
 
-        foreach (var listainstrucciones in context.listainstrucciones())
-        {
-            frameVisitor.Visit(listainstrucciones); // Visit each declaration in the function
-        }
+    int totalFrameSize = baseOffset + paramsOffset + localOffset + returnOffset;
 
-        var frame = frameVisitor.Frame;
-        int localOffset = frame.Count;
-        int returnOffset = 1;
+    string funcName = context.ID().GetText();
+    Console.WriteLine($"Function name: {funcName}");
+    
+    StackObject.StackObjectType funcType = StackObject.StackObjectType.Void;
+    if (context.tipo() != null)
+    {
+        funcType = GetType(context.tipo().GetText());
+    }
+    Console.WriteLine($"Function name: {funcName}, Type: {funcType}");
+    
+    functions.Add(funcName, new FunctionMetadata
+    {
+        FrameSize = totalFrameSize,
+        ReturnType = funcType
+    });
 
-        int totalFrameSize = baseOffset + paramsOffset + localOffset + returnOffset;
+    var prevInstruction = c.instructions;
+    c.instructions = new List<string>();
 
-        string funcName = context.ID().GetText();
-        StackObject.StackObjectType funcType = GetType(context.tipo().GetText());
-
-        functions.Add(funcName, new FunctionMetadata
-        {
-            FrameSize = totalFrameSize,
-            ReturnType = funcType
-        });
-
-        var prevInstruction = c.instructions;
-        c.instructions = new List<string>();
-
-
-        var paramCount = 0;
+    Console.WriteLine($"Creating function {funcName}");
+    
+    // Procesar parámetros
+    var paramCount = 0;
+    if (context.@params() != null)
+    {
         foreach (var param in context.@params().param())
         {
+            Console.WriteLine($"Parameter {paramCount}: {param.ID().GetText()}");
             c.PushObject(new StackObject
             {
                 Type = GetType(param.tipo().GetText()),
@@ -1445,74 +1582,96 @@ public override Object? VisitFuncdlc(LanguageParser.FuncdlcContext context)
             });
             paramCount++;
         }
-
-        foreach (FrameElement element in frame)
-        {
-            c.PushObject(new StackObject
-            {
-                Type = StackObject.StackObjectType.Undefined,
-                Id = element.Name,
-                Offset = element.Offset,
-                Length = 8,
-            });
-
-        }
-
-        insideFunction = funcName;
-        framePointerOffset = 0;
-
-        returnLabel = c.GetLabel(); // Get the return label
-
-        c.SetLabel(funcName); // Set the function label
-
-        foreach (var listainstrucciones in context.listainstrucciones())
-        {
-            Visit(listainstrucciones); // Visit each instruction in the function
-        }
-
-        c.SetLabel(returnLabel); // Set the return label
-
-        c.Add(Register.X0, Register.FP, Register.XZR); // Add the stack pointer to the return address
-        c.Ldr(Register.LR, Register.X0); // Load the return address into X0
-        c.Br(Register.LR); // Branch to the return address
-
-        c.Comment($"Function {funcName} frame size: {totalFrameSize} bytes");
-
-        for (int i = 0; i < paramsOffset + localOffset; i++)
-        {
-            c.PopObject(); // Pop the parameter from the stack
-        }
-
-        foreach (var instruccion in c.instructions)
-        {
-            c.funcInstructions.Add(instruccion); // Add the instruction to the function instructions
-        }
-
-        c.instructions = prevInstruction; // Restore the previous instruction list
-        insideFunction = null; // Clear the inside function variable
-        c.Comment($"End of function {funcName}");
-
-
-        return null;
     }
-
-    StackObject.StackObjectType GetType(string name)
+    Console.WriteLine($"Function {funcName} has {paramCount} parameters");
+    
+    // Procesar variables locales
+    foreach (FrameElement element in frame)
     {
-        switch(name)
+        c.PushObject(new StackObject
         {
-            case "int":
-                return StackObject.StackObjectType.Int;
-            case "float":
-                return StackObject.StackObjectType.Float;
-            case "string":
-                return StackObject.StackObjectType.String;
-            case "bool":
-                return StackObject.StackObjectType.Bool;
-            default:
-                throw new Exception($"Tipo desconocido: {name}");
-        }
-
+            Type = StackObject.StackObjectType.Undefined,
+            Id = element.Name,
+            Offset = element.Offset,
+            Length = 8,
+        });
     }
+
+    insideFunction = funcName;
+    framePointerOffset = 0;
+
+    returnLabel = c.GetLabel();
+
+    // Definir punto de entrada de la función
+    c.SetLabel(funcName);
+    Console.WriteLine($"Function label: {funcName}");
+    
+    // Visitar instrucciones
+    foreach (var listainstrucciones in context.listainstrucciones())
+    {
+        Visit(listainstrucciones);
+    }
+
+    // Punto de retorno
+    c.SetLabel(returnLabel);
+
+    // Recuperar dirección de retorno
+    c.Add(Register.X0, Register.FP, Register.XZR);
+    c.Ldr(Register.LR, Register.X0);
+    
+    // IMPORTANTE: Asegurar que los registros estén limpios antes de retornar
+    // Esto ayuda a evitar contaminación entre llamadas
+    c.Mov(Register.X5, Register.XZR);
+    c.Mov(Register.X6, Register.XZR);
+    c.Mov(Register.X7, Register.XZR);
+    
+    // Retornar
+    c.Br(Register.LR);
+
+    c.Comment($"Function {funcName} frame size: {totalFrameSize} bytes");
+
+    // Limpiar la pila
+    for (int i = 0; i < paramsOffset + localOffset; i++)
+    {
+        c.PopObject();
+    }
+
+    // Guardar instrucciones de la función
+    foreach (var instruccion in c.instructions)
+    {
+        c.funcInstructions.Add(instruccion);
+    }
+
+    // Restaurar el estado
+    c.instructions = prevInstruction;
+    insideFunction = null;
+    c.Comment($"End of function {funcName}");
+
+    return null;
+}
+
+
+
+private StackObject.StackObjectType GetType(string name)
+{
+    switch(name.ToLower())
+    {
+        case "int":
+            return StackObject.StackObjectType.Int;
+        case "float64":
+            return StackObject.StackObjectType.Float;
+        case "string":
+            return StackObject.StackObjectType.String;
+        case "bool":
+            return StackObject.StackObjectType.Bool;
+        case "char":
+        case "rune":
+            return StackObject.StackObjectType.Char;
+        default:
+            throw new Exception($"Tipo no soportado: {name}");
+    }
+}
+
 
     public override Object? VisitStructdcl(LanguageParser.StructdclContext context)
     {
@@ -1524,10 +1683,7 @@ public override Object? VisitFuncdlc(LanguageParser.FuncdlcContext context)
         return null;
     }
 
-    public override Object? VisitModuleFuncCall(LanguageParser.ModuleFuncCallContext context)
-    {
-        return null;
-    }
+
 
     public override Object? VisitInstanciaStruct(LanguageParser.InstanciaStructContext context)
     {

@@ -301,13 +301,6 @@ public interface ILanguageVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitNilExpresion([NotNull] LanguageParser.NilExpresionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by the <c>ModuleFuncCall</c>
-	/// labeled alternative in <see cref="LanguageParser.expr"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitModuleFuncCall([NotNull] LanguageParser.ModuleFuncCallContext context);
-	/// <summary>
 	/// Visit a parse tree produced by the <c>Float</c>
 	/// labeled alternative in <see cref="LanguageParser.expr"/>.
 	/// </summary>
