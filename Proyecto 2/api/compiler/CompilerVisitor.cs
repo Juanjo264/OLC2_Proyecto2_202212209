@@ -1079,82 +1079,67 @@ public override Object? VisitBloqueInstrucciones(LanguageParser.BloqueInstruccio
 public override Object? VisitSwitchInstruccion(LanguageParser.SwitchInstruccionContext context)
 {
     c.Comment("Switch statement");
-
+    
     // Evaluar la expresión del switch
     Visit(context.expr());
-    c.PopObject(Register.X0); // Pop the value to compare
-
-    var endLabel = c.GetLabel(); // Etiqueta para el final del switch
-    var caseLabels = new List<string>(); // Lista de etiquetas para los casos
-
-    // Guardar el valor anterior de breakLabel
+    var switchValueReg = Register.X1;
+    c.PopObject(switchValueReg);
+    
+    var endLabel = c.GetLabel(); // Etiqueta para salir del switch
     var prevBreakLabel = breakLabel;
-    breakLabel = endLabel; // Asignar la etiqueta de fin del switch a breakLabel
-
-    // Crear etiquetas para cada caso
+    breakLabel = endLabel;
+    
+    var nextLabels = new List<string>(); // Lista de etiquetas para casos
+    
+    // Procesar cada caso
     foreach (var caseCtx in context.cases())
     {
-        caseLabels.Add(c.GetLabel());
-    }
-
-    // Crear etiqueta para el default (si existe)
-    var defaultLabel = context.defaultCase() != null ? c.GetLabel() : endLabel;
-
-    // Generar comparaciones para cada caso
-    for (int i = 0; i < context.cases().Length; i++)
-    {
-        var caseCtx = context.cases(i);
-        var caseLabel = caseLabels[i];
-
-        // Evaluar el valor del caso
+        var nextLabel = c.GetLabel();
+        nextLabels.Add(nextLabel);
+        
+        // Evaluar la expresión del case
         Visit(caseCtx.expr());
-        c.PopObject(Register.X1); // Pop the case value
-
-        // Comparar con el valor del switch
-        c.Cmp(Register.X0, Register.X1);
-        c.Beq(caseLabel); // Saltar a la etiqueta del caso si son iguales
+        var caseValueReg = Register.X0;
+        c.PopObject(caseValueReg);
+        
+        // Comparar el valor del switch con el valor del case
+        c.Comment("Comparing switch value with case value");
+        c.Cmp(switchValueReg, caseValueReg);
+        c.Bne(nextLabel); // Si no son iguales, ir al siguiente caso
+        
+        // Si son iguales, ejecutar las instrucciones del case
+        c.Comment("Executing case block");
+        foreach (var inst in caseCtx.listainstrucciones())
+        {
+            Visit(inst);
+        }
+        
+        // Al final de cada case, saltar al final del switch
+        c.B(endLabel);
+        
+        // Etiqueta para el siguiente caso
+        c.SetLabel(nextLabel);
     }
-
-    // Si no coincide con ningún caso, saltar al default (si existe)
+    
+    // Procesar el caso default si existe
     if (context.defaultCase() != null)
     {
-        c.B(defaultLabel);
-    }
-
-    // Generar código para cada caso
-    for (int i = 0; i < context.cases().Length; i++)
-    {
-        var caseCtx = context.cases(i);
-        var caseLabel = caseLabels[i];
-
-        c.SetLabel(caseLabel); // Etiqueta del caso
-        foreach (var instruccion in caseCtx.listainstrucciones())
+        c.Comment("Default case");
+        foreach (var inst in context.defaultCase().listainstrucciones())
         {
-            Visit(instruccion); // Generar el bloque de instrucciones del caso
-        }
-        c.B(endLabel); // Saltar al final del switch después de ejecutar el caso
-    }
-
-    // Generar código para el default (si existe)
-    if (context.defaultCase() != null)
-    {
-        c.SetLabel(defaultLabel); // Etiqueta del default
-        foreach (var instruccion in context.defaultCase().listainstrucciones())
-        {
-            Visit(instruccion); // Generar el bloque de instrucciones del default
+            Visit(inst);
         }
     }
-
-    // Etiqueta final del switch
+    
+    // Etiqueta de fin del switch
     c.SetLabel(endLabel);
-    c.Comment("End of switch statement");
-
-    // Restaurar el valor anterior de breakLabel
-    breakLabel = prevBreakLabel;
-
+    
+    breakLabel = prevBreakLabel; // Restaurar la etiqueta de break anterior
+    
     return null;
 }
-  
+
+
     // public override Object? VisitDeclaracionSlice(LanguageParser.DeclaracionSliceContext context)
     // {
     //     return null;
@@ -1281,15 +1266,19 @@ public override Object? VisitForCondicion(LanguageParser.ForCondicionContext con
     //     return null;
     // }
 
-    public override Object? VisitBreakInstruccion(LanguageParser.BreakInstruccionContext context)
+public override Object? VisitBreakInstruccion(LanguageParser.BreakInstruccionContext context)
+{
+    c.Comment("Break statement");
+    if (!string.IsNullOrEmpty(breakLabel))
     {
-        c.Comment("Break statement");
-        if (breakLabel != null)
-        {
-            c.B(breakLabel); // Jump to the break label
-        }
-        return null;
+        c.B(breakLabel); // Saltar a la etiqueta de break
     }
+    else
+    {
+        throw new Exception("Error semántico: 'break' fuera de un contexto válido");
+    }
+    return null;
+}
 
     public override Object? VisitReturnInstruccion(LanguageParser.ReturnInstruccionContext context)
     {
