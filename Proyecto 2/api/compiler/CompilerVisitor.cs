@@ -80,39 +80,52 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
         Visit(context.impresiones());  
         return null;
     }
-
-    public override Object? VisitImpresiones(LanguageParser.ImpresionesContext context)
+public override Object? VisitImpresiones(LanguageParser.ImpresionesContext context)
+{
+    if (context.impresiones() != null)
     {
-        if (context.impresiones() != null)
-        {
-            Visit(context.impresiones()); 
-        }
-
-        c.Comment("visiting expression");
-        Visit(context.expr()); 
-        c.Comment("Popping value to print");
-        var isDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
-        var value = c.PopObject(isDouble ? Register.D0 : Register.X0); // Pop the value into X0 or D0   
-
-        if (value.Type == StackObject.StackObjectType.Int)
-        {
-            c.PrintInteger(Register.X0);
-        }
-        else if (value.Type == StackObject.StackObjectType.Float)
-        {
-            c.PrintFloat();
-        }
-        else if (value.Type == StackObject.StackObjectType.String)
-        {
-            c.PrintString(Register.X0);
-        }
-        
-        c.PrintNewline();
-
-
-        return null;
+        Visit(context.impresiones()); 
     }
 
+    c.Comment("visiting expression");
+    Visit(context.expr()); 
+    c.Comment("Popping value to print");
+    var isDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
+    var value = c.PopObject(isDouble ? Register.D0 : Register.X0); // Pop the value into X0 or D0   
+
+    if (value.Type == StackObject.StackObjectType.Int)
+    {
+        c.PrintInteger(Register.X0);
+    }
+    else if (value.Type == StackObject.StackObjectType.Float)
+    {
+        c.PrintFloat();
+    }
+    else if (value.Type == StackObject.StackObjectType.String)
+    {
+        c.PrintString(Register.X0);
+    }
+    else if (value.Type == StackObject.StackObjectType.Bool)
+    {
+        // Imprime el valor booleano como 1 (true) o 0 (false)
+        c.Comment("Printing boolean value");
+        c.PrintInteger(Register.X0); // Usa PrintInteger para imprimir el valor booleano
+    }
+    else if (value.Type == StackObject.StackObjectType.Char)
+    {
+        c.Comment("Printing character value");
+        c.PrintChar(); // Usa la nueva función PrintChar que utiliza print_char
+    }
+
+    else
+    {
+        throw new Exception($"Unsupported type for printing: {value.Type}");
+    }
+    
+    c.PrintNewline(); // Imprime un salto de línea después de cada impresión
+
+    return null;
+}
     
     public override Object? VisitIdexpresion(LanguageParser.IdexpresionContext context)
     {
@@ -145,10 +158,13 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
         return null;
     }
 
-    public override Object? VisitParens(LanguageParser.ParensContext context)
-    {
-        return null;
-    }
+public override Object? VisitParens(LanguageParser.ParensContext context)
+{
+    Console.WriteLine("Visitando Parens");
+    return Visit(context.expr());
+}
+
+
 
     public override Object? VisitNegate(LanguageParser.NegateContext context)
     {
@@ -226,6 +242,8 @@ public override object? VisitMulDiv(LanguageParser.MulDivContext context)
     return null;
 }
 
+
+
 public override object? VisitAddSub(LanguageParser.AddSubContext context)
 {
     c.Comment("Operación de suma o resta");
@@ -236,61 +254,146 @@ public override object? VisitAddSub(LanguageParser.AddSubContext context)
     Visit(context.expr(1));
 
     // Obtiene los operandos de la pila
-    var isRightDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
-    var right = c.PopObject(isRightDouble ? Register.D0 : Register.X0);
-    var isLeftDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
-    var left = c.PopObject(isLeftDouble ? Register.D1 : Register.X1);
+    var right = c.TopObject();
+    var rightType = right.Type;
+    var rightReg = rightType == StackObject.StackObjectType.Float ? Register.D0 : Register.X0;
+    right = c.PopObject(rightReg);
 
-    // Manejo de operaciones con flotantes
-    if (isLeftDouble || isRightDouble)
+    var left = c.TopObject();
+    var leftType = left.Type;
+    var leftReg = leftType == StackObject.StackObjectType.Float ? Register.D1 : Register.X1;
+    left = c.PopObject(leftReg);
+
+    // Manejo especial para concatenación de strings
+    if ((leftType == StackObject.StackObjectType.String || rightType == StackObject.StackObjectType.String) && operation == "+")
     {
-        if (!isLeftDouble) c.Scvtf(Register.D1, Register.X1); // Convierte entero a flotante
-        if (!isRightDouble) c.Scvtf(Register.D0, Register.X0); // Convierte entero a flotante
+        c.Comment("String concatenation operation");
+        
+        // Guardar la posición actual del heap antes de la concatenación
+        c.Push(Register.HP);
+        
+        string copyFirstLabel = c.GetLabel(); // Etiqueta para copiar el primer string
+        string copySecondLabel = c.GetLabel(); // Etiqueta para copiar el segundo string
+        string continueFirstLabel = c.GetLabel(); // Etiqueta para continuar con el primer string
+        string continueSecondLabel = c.GetLabel(); // Etiqueta para continuar con el segundo string
+        string endLabel = c.GetLabel(); // Etiqueta para finalizar
+        
+        // Copiar el primer string (izquierdo) al heap
+        if (leftType == StackObject.StackObjectType.String)
+        {
+            c.Comment("Copying first string to heap");
+            c.Mov(Register.X2, Register.X1); // X2 = dirección del primer string
+            c.SetLabel(copyFirstLabel);
+            // Cargar byte del string (cuidado: usar LDRB para cargar un solo byte)
+            c.instructions.Add("LDRB w3, [x2]");
+            // Verificar si es 0 (fin del string)
+            c.Cbz("w3", copySecondLabel);
+            // Guardar byte en el heap
+            c.Strb("w3", Register.HP);
+            // Incrementar punteros
+            c.Add(Register.X2, Register.X2, "1");
+            c.Add(Register.HP, Register.HP, "1");
+            // Continuar con el siguiente byte
+            c.B(copyFirstLabel);
+        }
+        
+        // Copiar el segundo string (derecho) al heap
+        c.SetLabel(copySecondLabel);
+        if (rightType == StackObject.StackObjectType.String)
+        {
+            c.Comment("Copying second string to heap");
+            c.Mov(Register.X2, Register.X0); // X2 = dirección del segundo string
+            c.SetLabel(continueSecondLabel);
+            // Cargar byte del string (usar LDRB para cargar un solo byte)
+            c.instructions.Add("LDRB w3, [x2]");
+            // Verificar si es 0 (fin del string)
+            c.Cbz("w3", endLabel);
+            // Guardar byte en el heap
+            c.Strb("w3", Register.HP);
+            // Incrementar punteros
+            c.Add(Register.X2, Register.X2, "1");
+            c.Add(Register.HP, Register.HP, "1");
+            // Continuar con el siguiente byte
+            c.B(continueSecondLabel);
+        }
+        
+        // Añadir 0 al final del string resultante
+        c.SetLabel(endLabel);
+        c.Mov("w3", 0);
+        c.Strb("w3", Register.HP);
+        c.Add(Register.HP, Register.HP, "1");
+        
+        // El resultado es la dirección del heap donde empezó el string concatenado
+        c.Pop(Register.X0);
+        c.Push(Register.X0);
+        c.PushObject(c.StringObject());
+        
+        return null;
+    }
+    
+    // Manejo de operaciones con flotantes
+    else if (leftType == StackObject.StackObjectType.Float || rightType == StackObject.StackObjectType.Float)
+    {
+        if (leftType != StackObject.StackObjectType.Float) 
+            c.Scvtf(Register.D1, Register.X1); // Convierte entero a flotante
+        if (rightType != StackObject.StackObjectType.Float) 
+            c.Scvtf(Register.D0, Register.X0); // Convierte entero a flotante
 
         if (operation == "+")
         {
-            c.Fadd(Register.D0, Register.D0, Register.D1); // Suma flotante
+            c.Comment("Float addition");
+            c.Fadd(Register.D0, Register.D1, Register.D0); // left + right
         }
         else if (operation == "-")
         {
-            c.Fsub(Register.D0, Register.D0, Register.D1); // Resta flotante
+            c.Comment("Float subtraction");
+            c.Fsub(Register.D0, Register.D1, Register.D0); // left - right
+        }
+        else if (operation == "*")
+        {
+            c.Comment("Float multiplication");
+            c.Fmul(Register.D0, Register.D1, Register.D0); // left * right
+        }
+        else if (operation == "/")
+        {
+            c.Comment("Float division");
+            c.Fdiv(Register.D0, Register.D1, Register.D0); // left / right
         }
 
-        c.Comment("Pushing float result");
         c.Push(Register.D0);
-        c.PushObject(c.CloneObject(isLeftDouble ? left : right));
+        c.PushObject(c.FloatObject());
     }
     else
     {
         // Manejo de operaciones con enteros
         if (operation == "+")
         {
-            c.Add(Register.X0, Register.X0, Register.X1); // Suma entera
+            c.Comment("Integer addition");
+            c.Add(Register.X0, Register.X1, Register.X0); // left + right
         }
         else if (operation == "-")
         {
-            c.Sub(Register.X0, Register.X1, Register.X0); // left - right ✅
+            c.Comment("Integer subtraction");
+            c.Sub(Register.X0, Register.X1, Register.X0); // left - right
+        }
+        else if (operation == "*")
+        {
+            c.Comment("Integer multiplication");
+            c.Mul(Register.X0, Register.X1, Register.X0); // left * right
+        }
+        else if (operation == "/")
+        {
+            c.Comment("Integer division");
+            c.Div(Register.X0, Register.X1, Register.X0); // left / right
         }
 
-
-        c.Comment("Pushing integer result");
         c.Push(Register.X0);
-
-        // Empuja el objeto resultante a la pila virtual
-        var resultObject = new StackObject
-        {
-            Type = StackObject.StackObjectType.Int,
-            Length = 8,
-            Depth = c.CurrentDepth,
-            Id = null
-        };
-        c.PushObject(resultObject);
+        c.PushObject(c.IntObject());
     }
 
     return null;
-}
-
-    public override Object? VisitMod(LanguageParser.ModContext context)
+} 
+   public override Object? VisitMod(LanguageParser.ModContext context)
     {
     c.Comment("Operación módulo (int % int)");
 
@@ -327,31 +430,95 @@ public override object? VisitAddSub(LanguageParser.AddSubContext context)
     // {
     //     return null;
     // }
-public override Object? VisitVariables(LanguageParser.VariablesContext context)
+public override Object? VisitDeclaracionVar(LanguageParser.DeclaracionVarContext context)
 {
     var varName = context.ID().GetText();
     c.Comment($"Variable declaration: {varName}");
 
-    Visit(context.expr()); // Evalúa la expresión de inicialización
+    StackObject valorPorDefecto;
+    object valor;
+
+    if (context.expr() != null)
+    {
+        Visit(context.expr()); // Evaluar la expresión de inicialización
+        valorPorDefecto = c.TopObject(); // Ya fue empujado al stack virtual
+    }
+    else
+    {
+        var tipoTexto = context.tipo().GetText();
+
+        switch (tipoTexto)
+        {
+            case "int":
+                valorPorDefecto = c.IntObject();
+                valor = 0;
+                break;
+            case "float64":
+                valorPorDefecto = c.FloatObject();
+                valor = 0.0;
+                break;
+            case "string":
+                valorPorDefecto = c.StringObject();
+                valor = "";
+                break;
+            case "bool":
+                valorPorDefecto = c.BoolObject();
+                valor = false;
+                break;
+            case "char":
+            case "rune":
+                      
+            default:
+                throw new Exception($"Tipo no soportado para inicialización: {tipoTexto}");
+        }
+
+        c.PushConstant(valorPorDefecto, valor);
+    }
 
     if (insideFunction != null)
     {
         var localObject = c.GetFrameLocal(framePointerOffset);
-        var valueObject = c.PopObject(Register.X0); // Obtiene el valor de la variable
+        var valueObject = c.PopObject(Register.X0);
 
-        //localobject puede ser
-        c.Mov(Register.X1, framePointerOffset * 8); // Mueve el offset al registro X1
-        c.Sub(Register.X1, Register.FP, Register.X1); // Calcula la dirección en la pila
-        c.Str(Register.X0, Register.X1); // Almacena el valor en la dirección calculada
+        c.Mov(Register.X1, framePointerOffset * 8);
+        c.Sub(Register.X1, Register.FP, Register.X1);
+        c.Str(Register.X0, Register.X1);
 
-        localObject.Type = valueObject.Type; // Actualiza el tipo del objeto en la pila
-        framePointerOffset++; // Incrementa el offset para la siguiente variable
+        localObject.Type = valueObject.Type;
+        framePointerOffset++;
 
         return null;
-
-
     }
-    // Registra la variable en la pila virtual
+
+    c.TagObject(varName);
+    c.Comment($"Variable {varName} registered in stack");
+
+    return null;
+}
+
+
+public override Object? VisitDeclaracionImplicita(LanguageParser.DeclaracionImplicitaContext context)
+{
+    var varName = context.ID().GetText();
+    c.Comment($"Variable declaration: {varName}");
+
+    Visit(context.expr());
+
+    if (insideFunction != null)
+    {
+        var localObject = c.GetFrameLocal(framePointerOffset);
+        var valueObject = c.PopObject(Register.X0);
+
+        c.Mov(Register.X1, framePointerOffset * 8);
+        c.Sub(Register.X1, Register.FP, Register.X1);
+        c.Str(Register.X0, Register.X1);
+
+        localObject.Type = valueObject.Type;
+        framePointerOffset++;
+
+        return null;
+    }
+
     c.TagObject(varName);
     c.Comment($"Variable {varName} registered in stack");
 
@@ -360,38 +527,34 @@ public override Object? VisitVariables(LanguageParser.VariablesContext context)
 
 public override Object? VisitAssign(LanguageParser.AssignContext context)
 {
-    var assignee = context.ID();
+    var varName = context.ID().GetText(); // obtiene el nombre de la variable directamente
+    c.Comment($"Assignment to variable: {varName}");
 
-    if (assignee is LanguageParser.IdexpresionContext idContext)
-    
+    Visit(context.expr()); // Evalúa la expresión de asignación
+
+    var valueObject = c.PopObject(Register.X0); // obtiene el valor a asignar
+    var (offset, varObject) = c.GetObject(varName); // busca en la pila virtual
+
+    if (insideFunction != null)
     {
-        c.Comment($"Assignment to variable: {assignee}");
-
-        string varName = idContext.ID().GetText();
-        Visit(context.expr()); // Evalúa la expresión de asignación
-
-        var valueObject = c.PopObject(Register.X0); // Obtiene el valor a asignar
-
-        var (offset, varObject) = c.GetObject(varName);
-
-        if (insideFunction != null)
-        {
-            c.Mov(Register.X1, varObject.Offset * 8); // Mueve el offset al registro X1
-            c.Sub(Register.X1, Register.FP, Register.X1); // Calcula la dirección en la pila
-            c.Str(Register.X0, Register.X1); // Almacena el valor en la dirección calculada
-            return null;
-        }
-
-        c.Mov(Register.X1, offset); // Mueve el offset al registro X1
-        c.Add(Register.X1, Register.SP, Register.X1); // Calcula la dirección en la pila
-        c.Str(Register.X0, Register.X1); // Almacena el valor en la dirección calculada
-
-        // Actualiza el tipo del objeto en la pila
-        varObject.Type = valueObject.Type;
-
-        c.Push(Register.X0);
-        c.PushObject(c.CloneObject(varObject));
+        c.Mov(Register.X1, varObject.Offset * 8); // offset de stack frame
+        c.Sub(Register.X1, Register.FP, Register.X1); // calcula dirección relativa al FP
+        c.Str(Register.X0, Register.X1); // almacena el valor
     }
+    else
+    {
+        c.Mov(Register.X1, offset); // offset para SP
+        c.Add(Register.X1, Register.SP, Register.X1); // dirección final
+        c.Str(Register.X0, Register.X1); // almacena el valor
+    }
+
+    // Actualiza el tipo en la pila virtual
+    varObject.Type = valueObject.Type;
+
+    // Opcional: empujar valor para compatibilidad con expresiones
+    c.Push(Register.X0);
+    c.PushObject(c.CloneObject(varObject));
+
     return null;
 }
 
@@ -422,86 +585,330 @@ public override Object? VisitAssign(LanguageParser.AssignContext context)
         return null;
     }
 
-    public override Object? VisitCaracterExpresion(LanguageParser.CaracterExpresionContext context)
-    {
-        return null;
-    }
+public override Object? VisitCaracterExpresion(LanguageParser.CaracterExpresionContext context)
+{
+    // Get the character from the context
+    string charLiteral = context.CARACTER().GetText();
+    
+    // Extract the character between the single quotes
+    char character = charLiteral[1]; // Get the character at index 1 (between quotes)
+    int charValue = (int)character;  // Convert to its ASCII/Unicode value
+    
+    c.Comment($"Creating character literal: '{character}' (ASCII: {charValue})");
+    
+    // Create character object
+    var charObj = c.IntObject(); // Podemos usar IntObject y cambiar el tipo después
+    charObj.Type = StackObject.StackObjectType.Char;
+    
+    // Push the constant to the stack
+    c.PushConstant(charObj, charValue);
+    
+    return null;
+}
 
-    public override object? VisitOperadorNegacion(LanguageParser.OperadorNegacionContext context)
-    {
-        Visit(context.right);
+public override Object? VisitOperadorNegacion(LanguageParser.OperadorNegacionContext context)
+{
+    Visit(context.right);
 
-        var value = c.PopObject(Register.X0);
+    var value = c.PopObject("X0");
 
-        if (value.Type != StackObject.StackObjectType.Int)
-            throw new Exception("La negación lógica (!) solo se puede aplicar a booleanos representados como enteros");
+    // Acepta tanto bool como int
+    var tiposValidos = new[] { StackObject.StackObjectType.Bool, StackObject.StackObjectType.Int };
+    if (!tiposValidos.Contains(value.Type))
+        throw new Exception("La negación lógica (!) solo se puede aplicar a booleanos (0 o 1)");
 
-        c.Cmp(Register.X0, "0");
-        c.Cset(Register.X0, "EQ");
+    c.Cmp("X0", "0");
+    c.Cset("X0", "EQ"); // EQ = igual, se activa si X0 == 0
 
-        c.Push(Register.X0);
-        c.PushObject(c.IntObject());
+    c.Push("X0");
+    c.PushObject(c.BoolObject()); // Resultado es booleano
 
-        return null;
-    }
-
+    return null;
+}
 
 public override object? VisitRelational(LanguageParser.RelationalContext context)
 {
     var op = context.op.Text;
-    c.Comment($"Operación relacional: {op}");
+    Console.WriteLine($"==> VisitRelational: Operador recibido: {op}");
 
     Visit(context.expr(0));
     Visit(context.expr(1));
 
+    // Verificamos si alguno de los operandos es float
     var isRightDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
     var right = c.PopObject(isRightDouble ? Register.D0 : Register.X0);
+
     var isLeftDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
     var left = c.PopObject(isLeftDouble ? Register.D1 : Register.X1);
 
-    if (isLeftDouble || isRightDouble)
-    {
-        //TODO:
-    }
-    c.Cmp(Register.X1, Register.X0);
+    //Console.WriteLine($"Relational operands: Left={left.Type}, Right={right.Type}");
+
+    // Declaramos etiquetas una sola vez
     var trueLabel = c.GetLabel();
     var endLabel = c.GetLabel();
+
+    // Comparación con floats
+    if (isLeftDouble || isRightDouble)
+    {
+        c.Comment("Float comparison");
+        
+        // Convertir left a float si es necesario
+        if (left.Type == StackObject.StackObjectType.Int)
+        {
+            c.Comment("Converting left operand from int to float");
+            c.Scvtf(Register.D1, Register.X1);
+        }
+        else if (left.Type == StackObject.StackObjectType.Float)
+        {
+            c.Comment("Left operand is already float");
+            // Asegura que el valor esté en D1
+            c.Fmov(Register.D1, Register.D1);
+        }
+
+        // Convertir right a float si es necesario
+        if (right.Type == StackObject.StackObjectType.Int)
+        {
+            c.Comment("Converting right operand from int to float");
+            c.Scvtf(Register.D0, Register.X0);
+        }
+        else if (right.Type == StackObject.StackObjectType.Float)
+        {
+            c.Comment("Right operand is already float");
+            // Asegura que el valor esté en D0
+            c.Fmov(Register.D0, Register.D0);
+        }
+
+        // Realizar la comparación
+        c.Comment($"Comparing D1 and D0 with {op}");
+        c.Fcmp(Register.D1, Register.D0);
+
+        switch (op)
+        {
+            case "<":
+                c.Comment("Branch if less than");
+                c.instructions.Add($"B.LT {trueLabel}");
+                break;
+            case "<=":
+                c.Comment("Branch if less than or equal");
+                c.instructions.Add($"B.LE {trueLabel}");
+                break;
+            case ">":
+                c.Comment("Branch if greater than");
+                c.instructions.Add($"B.GT {trueLabel}");
+                break;
+            case ">=":
+                c.Comment("Branch if greater than or equal");
+                c.instructions.Add($"B.GE {trueLabel}");
+                break;
+            default:
+                throw new Exception($"Operador relacional no válido con float: {op}");
+        }
+
+        // Caso falso
+        c.Comment("False case - set X0 to 0");
+        c.Mov(Register.X0, 0);
+        c.Push(Register.X0);
+        c.B(endLabel);
+        
+        // Caso verdadero
+        c.SetLabel(trueLabel);
+        c.Comment("True case - set X0 to 1");
+        c.Mov(Register.X0, 1);
+        c.Push(Register.X0);
+        
+        // Final común
+        c.SetLabel(endLabel);
+        c.PushObject(c.BoolObject());
+        
+        Console.WriteLine($"==> Comparación float '{op}' ejecutada");
+        return null;
+    }
+
+    // Comparación con enteros
+    c.Comment($"Integer comparison with {op}");
+    c.Cmp(Register.X1, Register.X0);
+
     switch (op)
     {
         case "<":
+            c.Comment("Branch if less than");
             c.Blt(trueLabel);
             break;
         case "<=":
+            c.Comment("Branch if less than or equal");
             c.Ble(trueLabel);
             break;
         case ">":
+            c.Comment("Branch if greater than");
             c.Bgt(trueLabel);
             break;
-        case ">=": 
+        case ">=":
+            c.Comment("Branch if greater than or equal");
             c.Bge(trueLabel);
             break;
-        case "==":
-            c.Beq(trueLabel);
-            break;
-        case "!=":
-            c.Bne(trueLabel);
-            break;
+        default:
+            throw new Exception($"Operador relacional no válido con int: {op}");
     }
+
+    // Caso falso
+    c.Comment("False case - set X0 to 0");
     c.Mov(Register.X0, 0);
     c.Push(Register.X0);
     c.B(endLabel);
+    
+    // Caso verdadero
     c.SetLabel(trueLabel);
+    c.Comment("True case - set X0 to 1");
     c.Mov(Register.X0, 1);
     c.Push(Register.X0);
+    
+    // Final común
     c.SetLabel(endLabel);
-
     c.PushObject(c.BoolObject());
+    
+    Console.WriteLine($"==> Comparación int '{op}' ejecutada");
     return null;
 }
-
 public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
 {
     var op = context.op.Text;
+    Console.WriteLine($"==> VisitEqualitys: {op}");
+
+    Visit(context.expr(0));
+    Visit(context.expr(1));
+
+    // Verificamos si alguno de los operandos es float o string
+    var isRightDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
+    var isRightString = c.TopObject().Type == StackObject.StackObjectType.String;
+    var isRightChar = c.TopObject().Type == StackObject.StackObjectType.Char;
+    var right = c.PopObject(isRightDouble ? Register.D1 : Register.X1);
+
+    var isLeftDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
+    var isLeftString = c.TopObject().Type == StackObject.StackObjectType.String;
+    var isLeftChar = c.TopObject().Type == StackObject.StackObjectType.Char;
+    var left = c.PopObject(isLeftDouble ? Register.D0 : Register.X0);
+
+    Console.WriteLine($"Equality operands: Left={left.Type}, Right={right.Type}");
+
+    // Declaramos etiquetas para todos los casos
+    var trueLabel = c.GetLabel();
+    var endLabel = c.GetLabel();
+
+    // Case 1: Comparación con strings
+    if (isLeftString && isRightString)
+    {
+        // Para comparar strings, necesitamos comparar cada carácter
+        c.Comment("String comparison");
+        
+        // Implementar una función de comparación de strings
+        var loopLabel = c.GetLabel();
+        var charEqualLabel = c.GetLabel();
+        var diffLabel = c.GetLabel();
+        
+        c.SetLabel(loopLabel);
+        // Cargar un byte de cada string
+        c.instructions.Add("LDRB W2, [X0]");
+        c.instructions.Add("LDRB W3, [X1]");
+        
+        // Comparar bytes
+        c.instructions.Add("CMP W2, W3");
+        c.instructions.Add("BNE " + diffLabel);
+        
+        // Si son iguales, comprobar si es fin de string
+        c.instructions.Add("CBZ W2, " + trueLabel); // Si llegamos al final (byte 0) y todo coincide
+        
+        // Avanzar al siguiente carácter
+        c.instructions.Add("ADD X0, X0, #1");
+        c.instructions.Add("ADD X1, X1, #1");
+        c.instructions.Add("B " + loopLabel);
+        
+        // Si son diferentes, retornar false
+        c.SetLabel(diffLabel);
+        c.instructions.Add("MOV X0, #0");
+        c.B(endLabel);
+        
+        // Si son iguales (llegamos al final), retornar true
+        c.SetLabel(trueLabel);
+        c.instructions.Add("MOV X0, #1");
+        
+        // Punto final común
+        c.SetLabel(endLabel);
+        c.Push(Register.X0);
+        c.PushObject(c.BoolObject());
+        
+        return null;
+    }
+    // Case 2: Comparación con floats
+    else if (isLeftDouble || isRightDouble)
+    {
+        // Convertir ambos a float si es necesario
+        if (!isLeftDouble) 
+            c.Scvtf(Register.D0, Register.X0);
+        
+        if (!isRightDouble)
+            c.Scvtf(Register.D1, Register.X1);
+        
+        c.Fcmp(Register.D0, Register.D1);
+        
+        if (op == "==")
+            c.instructions.Add("B.EQ " + trueLabel);
+        else // op == "!="
+            c.instructions.Add("B.NE " + trueLabel);
+        
+        c.Mov(Register.X0, 0);
+        c.B(endLabel);
+        
+        c.SetLabel(trueLabel);
+        c.Mov(Register.X0, 1);
+        
+        c.SetLabel(endLabel);
+        c.Push(Register.X0);
+        c.PushObject(c.BoolObject());
+        
+        return null;
+    }
+    // Case 3: Comparación con caracteres
+    else if (isLeftChar || isRightChar)
+    {
+        // Los caracteres se manejan como enteros 
+        c.Cmp(Register.X0, Register.X1);
+        
+        if (op == "==")
+            c.Beq(trueLabel);
+        else // op == "!="
+            c.Bne(trueLabel);
+        
+        c.Mov(Register.X0, 0);
+        c.B(endLabel);
+        
+        c.SetLabel(trueLabel);
+        c.Mov(Register.X0, 1);
+        
+        c.SetLabel(endLabel);
+        c.Push(Register.X0);
+        c.PushObject(c.BoolObject());
+        
+        return null;
+    }
+    // Case 4: Comparación normal con enteros o booleanos
+    else
+    {
+        c.Cmp(Register.X0, Register.X1);
+        
+        string condition = op == "==" ? "EQ" : "NE";
+        c.instructions.Add($"CSET {Register.X0}, {condition}");
+        
+        c.Push(Register.X0);
+        c.PushObject(c.BoolObject());
+        
+        return null;
+    }
+}
+
+public override object? VisitLogicos(LanguageParser.LogicosContext context)
+{
+    var op = context.op.Text;
+    Console.WriteLine($"==> VisitLogicos: {op}");
 
     Visit(context.expr(0));
     Visit(context.expr(1));
@@ -509,70 +916,70 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
     var right = c.PopObject(Register.X1);
     var left = c.PopObject(Register.X0);
 
-    bool isFloat = left.Type == StackObject.StackObjectType.Float || right.Type == StackObject.StackObjectType.Float;
+    Console.WriteLine($"Logicos operands: Left={left.Type}, Right={right.Type}");
 
-    if (isFloat)
+    var tiposValidos = new[] { StackObject.StackObjectType.Int, StackObject.StackObjectType.Bool };
+    if (!tiposValidos.Contains(left.Type) || !tiposValidos.Contains(right.Type))
+        throw new Exception("El operador lógico solo puede aplicarse a booleanos (int 0 o 1)");
+
+    if (op == "&&")
+        c.instructions.Add($"AND {Register.X0}, {Register.X0}, {Register.X1}");
+    else if (op == "||")
+        c.instructions.Add($"ORR {Register.X0}, {Register.X0}, {Register.X1}");
+    else
+        throw new Exception($"Operador lógico no soportado: {op}");
+
+    c.Push(Register.X0);
+    c.PushObject(c.BoolObject());
+
+    Console.WriteLine($"==> Resultado lógico empujado como BoolObject");
+    return null;
+}
+
+    
+    
+    
+    
+public override Object? VisitIncrementoDecremento(LanguageParser.IncrementoDecrementoContext context)
+{
+    var varName = context.ID().GetText();
+    var op = context.GetText().EndsWith("++") ? "++" : "--";
+
+    c.Comment($"Incremento/Decremento: {varName} {op}");
+
+    var (offset, obj) = c.GetObject(varName);
+
+    // Cargar valor actual
+    if (insideFunction != null)
     {
-        if (left.Type == StackObject.StackObjectType.Int)
-            c.Scvtf(Register.D0, Register.X0);
-        else
-            c.Fmov(Register.D0, Register.X0);
-
-        if (right.Type == StackObject.StackObjectType.Int)
-            c.Scvtf(Register.D1, Register.X1);
-        else
-            c.Fmov(Register.D1, Register.X1);
-
-        c.instructions.Add($"FCMP {Register.D0}, {Register.D1}");
+        c.Mov(Register.X1, obj.Offset * 8);
+        c.Sub(Register.X1, Register.FP, Register.X1);
+        c.Ldr(Register.X0, Register.X1);
     }
     else
     {
-        c.instructions.Add($"CMP {Register.X0}, {Register.X1}");
+        c.Mov(Register.X1, offset);
+        c.Add(Register.X1, Register.SP, Register.X1);
+        c.Ldr(Register.X0, Register.X1);
     }
 
-    string condition = op == "==" ? "EQ" : "NE";
+    // Incrementar o decrementar
+    if (op == "++")
+        c.Add(Register.X0, Register.X0, "1");
+    else
+        c.Sub(Register.X0, Register.X0, "1");
 
-    c.instructions.Add($"CSET {Register.X0}, {condition}");
-
-    c.Push(Register.X0);
-    c.PushObject(c.IntObject());
+    // Guardar valor actualizado
+    if (insideFunction != null)
+        c.Str(Register.X0, Register.X1);
+    else
+        c.Str(Register.X0, Register.X1);
 
     return null;
 }
 
 
-    public override Object? VisitIncrementoDecremento(LanguageParser.IncrementoDecrementoContext context)
-    {
-        return null;
-    }
-
-    public override object? VisitLogicos(LanguageParser.LogicosContext context)
-    {
-        var op = context.op.Text;
-
-        Visit(context.expr(0));
-        Visit(context.expr(1));
-
-        var right = c.PopObject(Register.X1);
-        var left = c.PopObject(Register.X0);
-
-        if (left.Type != StackObject.StackObjectType.Int || right.Type != StackObject.StackObjectType.Int)
-            throw new Exception("El operador lógico solo puede aplicarse a booleanos (int 0 o 1)");
-
-        if (op == "&&")
-            c.instructions.Add($"AND {Register.X0}, {Register.X0}, {Register.X1}");
-        else if (op == "||")
-            c.instructions.Add($"ORR {Register.X0}, {Register.X0}, {Register.X1}");
-        else
-            throw new Exception($"Operador lógico no soportado: {op}");
-
-        c.Push(Register.X0);
-        c.PushObject(c.IntObject());
-
-        return null;
-    }
-
-    public override Object? VisitBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext context)
+public override Object? VisitBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext context)
     {
 
         c.Comment("Block of instructions");
@@ -668,11 +1075,86 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
         return null;
     }
 
-    public override Object? VisitSwitchInstruccion(LanguageParser.SwitchInstruccionContext context)
+
+public override Object? VisitSwitchInstruccion(LanguageParser.SwitchInstruccionContext context)
+{
+    c.Comment("Switch statement");
+
+    // Evaluar la expresión del switch
+    Visit(context.expr());
+    c.PopObject(Register.X0); // Pop the value to compare
+
+    var endLabel = c.GetLabel(); // Etiqueta para el final del switch
+    var caseLabels = new List<string>(); // Lista de etiquetas para los casos
+
+    // Guardar el valor anterior de breakLabel
+    var prevBreakLabel = breakLabel;
+    breakLabel = endLabel; // Asignar la etiqueta de fin del switch a breakLabel
+
+    // Crear etiquetas para cada caso
+    foreach (var caseCtx in context.cases())
     {
-        return null;
+        caseLabels.Add(c.GetLabel());
     }
 
+    // Crear etiqueta para el default (si existe)
+    var defaultLabel = context.defaultCase() != null ? c.GetLabel() : endLabel;
+
+    // Generar comparaciones para cada caso
+    for (int i = 0; i < context.cases().Length; i++)
+    {
+        var caseCtx = context.cases(i);
+        var caseLabel = caseLabels[i];
+
+        // Evaluar el valor del caso
+        Visit(caseCtx.expr());
+        c.PopObject(Register.X1); // Pop the case value
+
+        // Comparar con el valor del switch
+        c.Cmp(Register.X0, Register.X1);
+        c.Beq(caseLabel); // Saltar a la etiqueta del caso si son iguales
+    }
+
+    // Si no coincide con ningún caso, saltar al default (si existe)
+    if (context.defaultCase() != null)
+    {
+        c.B(defaultLabel);
+    }
+
+    // Generar código para cada caso
+    for (int i = 0; i < context.cases().Length; i++)
+    {
+        var caseCtx = context.cases(i);
+        var caseLabel = caseLabels[i];
+
+        c.SetLabel(caseLabel); // Etiqueta del caso
+        foreach (var instruccion in caseCtx.listainstrucciones())
+        {
+            Visit(instruccion); // Generar el bloque de instrucciones del caso
+        }
+        c.B(endLabel); // Saltar al final del switch después de ejecutar el caso
+    }
+
+    // Generar código para el default (si existe)
+    if (context.defaultCase() != null)
+    {
+        c.SetLabel(defaultLabel); // Etiqueta del default
+        foreach (var instruccion in context.defaultCase().listainstrucciones())
+        {
+            Visit(instruccion); // Generar el bloque de instrucciones del default
+        }
+    }
+
+    // Etiqueta final del switch
+    c.SetLabel(endLabel);
+    c.Comment("End of switch statement");
+
+    // Restaurar el valor anterior de breakLabel
+    breakLabel = prevBreakLabel;
+
+    return null;
+}
+  
     // public override Object? VisitDeclaracionSlice(LanguageParser.DeclaracionSliceContext context)
     // {
     //     return null;
@@ -713,9 +1195,44 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
         return null;
     }
 
-    // public override Object? VisitForCondicion(LanguageParser.ForCondicionContext context)
-    // {
-    // }
+public override Object? VisitForCondicion(LanguageParser.ForCondicionContext context)
+{
+    var startLabel = c.GetLabel();
+    var endLabel = c.GetLabel();
+
+    var prevContinueLabel = continueLabel;
+    var prevBreakLabel = breakLabel;
+
+    continueLabel = startLabel; // El continue salta a evaluar la condición
+    breakLabel = endLabel;      // El break salta al final del ciclo
+
+    c.Comment("For-condición (como while)");
+    c.NewScope();
+
+    c.SetLabel(startLabel); // Etiqueta de inicio del ciclo
+    Visit(context.expr());  // Evaluamos la condición
+    c.PopObject(Register.X0); 
+    c.Cbz(Register.X0, endLabel); // Si es falsa, salta al final
+
+    Visit(context.instruccion()); // Ejecuta el cuerpo
+
+    c.B(startLabel); // Regresa al inicio para reevaluar
+
+    c.SetLabel(endLabel); // Marca el final del ciclo
+
+    c.Comment("Fin del for-condición");
+    var bytesToRemove = c.EndScope();
+    if (bytesToRemove > 0)
+    {
+        c.Mov(Register.X0, bytesToRemove);
+        c.Add(Register.SP, Register.SP, Register.X0);
+    }
+
+    continueLabel = prevContinueLabel;
+    breakLabel = prevBreakLabel;
+
+    return null;
+}
 
 
     public override Object? VisitForincicializacion(LanguageParser.ForincicializacionContext context)

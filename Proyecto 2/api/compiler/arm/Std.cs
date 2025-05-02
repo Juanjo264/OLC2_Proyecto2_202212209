@@ -312,6 +312,37 @@ exit_function:
         ret
     " 
     },
+    { "print_char", @"
+//--------------------------------------------------------------
+// print_char - Prints a single character to stdout
+//
+// Input:
+//   x0 - The character value to print (ASCII/Unicode value)
+//--------------------------------------------------------------
+print_char:
+    // Save registers
+    stp x29, x30, [sp, #-16]!
+    
+    // Save the character temporarily
+    mov x19, x0
+    
+    // Prepare for write syscall
+    mov x0, #1              // File descriptor: 1 for stdout
+    sub sp, sp, #8          // Reserve space on stack
+    strb w19, [sp]          // Store character at stack pointer
+    mov x1, sp              // Point to the character
+    mov x2, #1              // Length: 1 byte
+    mov x8, #64             // syscall: write (64 on ARM64)
+    svc #0                  // Make the syscall
+    
+    // Clean up
+    add sp, sp, #8          // Restore stack
+    
+    // Restore registers
+    ldp x29, x30, [sp], #16
+    ret
+" },
+
     };
 
     private readonly static Dictionary<string, string> Symbols = new Dictionary<string, string>

@@ -6,7 +6,7 @@ using System.Xml.Serialization;
 
 public class StackObject
 {
-  public enum StackObjectType {Int, Float, String, Bool, Undefined}
+  public enum StackObjectType {Int, Float, String, Bool, Undefined, Char}
 
   public StackObjectType Type { get; set; }
   public int Length { get; set; }
@@ -56,7 +56,8 @@ public int CurrentDepth => depth;
   }
   public void PushConstant(StackObject obj, object value)
   {
-  
+  //Console.WriteLine($"Pushing constant value: {value}");
+  //Console.WriteLine($"Pushing constant object: {obj.Type}");
   switch (obj.Type)
   {
     case StackObject.StackObjectType.Int:
@@ -65,29 +66,27 @@ public int CurrentDepth => depth;
 
       break;
   case StackObject.StackObjectType.Bool:
+      //Console.WriteLine($"Pushing boolean value: {value}");
       Mov(Register.X0, (bool)value ? 1 : 0);
       Push(Register.X0);
 
       break;
 
-  case StackObject.StackObjectType.Float:
+case StackObject.StackObjectType.Float:
+    long floatBits = BitConverter.DoubleToInt64Bits((double)value);
 
-      long floatBits = BitConverter.DoubleToInt64Bits((double)value);
-      short[] floatParts = new short[4];
+    for (int i = 0; i < 4; i++)
+    {
+        ushort part = (ushort)((floatBits >> (i * 16)) & 0xFFFF);
+        if (i == 0)
+            instructions.Add($"MOVZ X0, #{part}, LSL #{i * 16}");
+        else
+            instructions.Add($"MOVK X0, #{part}, LSL #{i * 16}");
+    }
 
-      for (int i = 0; i < 4; i++)
-      {
-          floatParts[i] = (short)((floatBits >> (i * 16)) & 0xFFFF);
-      }
+    Push(Register.X0); // Guarda en la pila normal (puedes usar STR D0 si prefieres, pero X0 es suficiente)
+    break;
 
-      instructions.Add($"MOVZ X0, {floatParts[0]}, LSL #0");
-      for (int i = 1; i < 4; i++)
-      {
-          instructions.Add($"MOVK X0, #{floatParts[i]}, LSL #{i * 16}");
-      }
-
-      Push(Register.X0);
-      break;
 
     case StackObject.StackObjectType.String:
       // to do
@@ -105,7 +104,11 @@ public int CurrentDepth => depth;
         Add(Register.HP, Register.HP, Register.X0);
       }
       break;
-
+      case StackObject.StackObjectType.Char:
+          // El char se representa como un solo byte ASCII
+        Mov(Register.X0, (int)value); // ✅ Seguro si value ya es int
+          Push(Register.X0);
+          break;
   }
 
   PushObject(obj);
@@ -238,7 +241,7 @@ public int EndScope()
   public void TagObject(string id)
   {
     stack.Last().Id = id;
-        Console.WriteLine($"Tagging object with id: {id}, stack count: {stack.Count}");
+        //Console.WriteLine($"Tagging object with id: {id}, stack count: {stack.Count}");
 
   }
 
@@ -247,10 +250,10 @@ public (int, StackObject) GetObject(string id)
     int byteOffset = 0;
     for (int i = stack.Count - 1; i >= 0; i--)
     {
-        Console.WriteLine($"Checking object {stack[i].Id} at offset {byteOffset}, length {stack[i].Length}");
+        //Console.WriteLine($"Checking object {stack[i].Id} at offset {byteOffset}, length {stack[i].Length}");
         if (stack[i].Id == id)
         {
-            Console.WriteLine($"Found {id} at offset {byteOffset}");
+            //Console.WriteLine($"Found {id} at offset {byteOffset}");
             return (byteOffset, stack[i]); // Devuelve el offset y el objeto encontrado
         }
         byteOffset += stack[i].Length; // Incrementa el offset según el tamaño del objeto
@@ -328,6 +331,8 @@ public void Mov(string rd, string rs)
     {
         instructions.Add($"STR {rs}, [SP, #-8]!"); // Push to stack
     }
+
+    
     
     public void Pop(string rd)
     {
@@ -396,6 +401,11 @@ public void Mov(string rd, string rs)
         instructions.Add($"BL print_integer"); 
     }
 
+    public void PrintChar()
+    {
+        stdlib.Use("print_char");
+        instructions.Add("BL print_char");
+    }
     public void PrintString(string rs)
     {
         stdlib.Use("print_string"); // Use the print_string function from the standard library

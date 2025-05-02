@@ -27,14 +27,22 @@ public class FrameElement
       BaseOffset = baseOffset;
     }
 
-  public override object VisitVariables(LanguageParser.VariablesContext context)
-  {
+public override object VisitDeclaracionVar(LanguageParser.DeclaracionVarContext context)
+{
     string name = context.ID().GetText();
-
     Frame.Add(new FrameElement(name, BaseOffset + LocalOffset));
-    LocalOffset += 1; // Incrementar el offset local para la siguiente variable
+    LocalOffset += 1;
     return null;
-  }
+}
+
+public override object VisitDeclaracionImplicita(LanguageParser.DeclaracionImplicitaContext context)
+{
+    string name = context.ID().GetText();
+    Frame.Add(new FrameElement(name, BaseOffset + LocalOffset));
+    LocalOffset += 1;
+    return null;
+}
+
 
   public override object VisitBloqueInstrucciones(LanguageParser.BloqueInstruccionesContext context)
   {

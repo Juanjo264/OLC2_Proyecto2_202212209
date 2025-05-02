@@ -1,7 +1,7 @@
 grammar Language;
 
 options { caseInsensitive = false; }
-
+BOOL: 'true' | 'false';
 INT: [0-9]+;
 FLOAT: [0-9]+'.'[0-9]+;
 WS: [ \t\r\n]+ -> channel(HIDDEN);
@@ -31,14 +31,15 @@ program: listainstrucciones* ;
 
 listainstrucciones : variables |instruccion | structdcl | funcdlc ;
 
-variables: 'var' ID tipo IGUAL expr #declaracionVar
-| ID DOSPUNTOS_IGUAL expr      #declaracionImplicita 
+variables
+    : 'var' ID tipo (IGUAL expr)?        #declaracionVar        
+    | ID DOSPUNTOS_IGUAL expr          #declaracionImplicita   
+    ;
 
-;
 fila: '{' expr (',' expr)* ','?'}' ;
 
 structdcl: 'type' ID 'struct' '{' structBody* '}' ;
-
+ 
 structBody: variables | funcdlc | ID tipo ;
  
 
@@ -55,7 +56,7 @@ param: ID ':' tipo
 instruccion:  expr  #ExprecionInstruccion 
 | print #PrintInstruccion
 | '{' listainstrucciones* '}' #BloqueInstrucciones
-| 'if'  '(' expr ')'   instruccion ('else' instruccion)? #IfInstruccion
+| 'if'   expr   instruccion ('else' instruccion)? #IfInstruccion
 | 'while' '(' expr ')' instruccion #WhileInstruccion
 | 'switch'  expr  '{' cases* (defaultCase)? '}'  #SwitchInstruccion
 | 'for' expr instruccion  #ForCondicion
@@ -81,7 +82,8 @@ defaultCase:
     ;
 
 expr:
-	 expr call+  #Callee
+	'(' expr ')'			# Parens
+	| expr call+  #Callee
 	| ID LLAVE_ABRE camposStruct LLAVE_CIERRA   # InstanciaStruct
 	| '!' right=expr #operadorNegacion
 	|'-' expr                   	  # Negate
@@ -94,9 +96,8 @@ expr:
   | expr '[' expr ']' '[' expr ']'  #AccesoSliceMulti
 	| expr '[' expr ']'  #AccesoSlice
 	| expr	op = ('&&' | '||' ) expr	# Logicos
-	| ID '=' expr								# Assign
 	| BOOL										# Boolean
-
+	| ID '=' expr								# Assign
 	| FLOAT					      # Float
 	| INT					      # Int
 	| 'new' ID '(' args? ')' #New
@@ -105,7 +106,6 @@ expr:
 	| ID #Idexpresion
 	| ID ('++' | '--') # IncrementoDecremento 
 	| 'nil' #nilExpresion
-	|	'(' expr ')'			# Parens
 
 ; 
 camposStruct: campoStruct (',' campoStruct)* (',')? ;
@@ -133,7 +133,6 @@ impresiones: impresiones ',' expr
 if: 'if'  expr  LLAVE_ABRE listainstrucciones LLAVE_CIERRA ('else' LLAVE_ABRE listainstrucciones LLAVE_CIERRA)? 
   | 'if'  expr  LLAVE_ABRE listainstrucciones LLAVE_CIERRA 'else' if;
 
-BOOL: 'true' | 'false';
 
 
 tipo: 'int'
