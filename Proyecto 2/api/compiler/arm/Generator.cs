@@ -63,6 +63,8 @@ public int CurrentDepth => depth;
   {
   //Console.WriteLine($"Pushing constant value: {value}");
   //Console.WriteLine($"Pushing constant object: {obj.Type}");
+
+  
   switch (obj.Type)
   {
     case StackObject.StackObjectType.Int:
@@ -111,7 +113,7 @@ case StackObject.StackObjectType.Float:
       break;
       case StackObject.StackObjectType.Char:
           // El char se representa como un solo byte ASCII
-        Mov(Register.X0, (int)value); // ✅ Seguro si value ya es int
+        Mov(Register.X0, (int)value); 
           Push(Register.X0);
           break;
   }
@@ -429,34 +431,32 @@ public void Mov(string rd, string rs)
         instructions.Add($"// {comment}");
     }
     
-  public override string ToString()
-  {
-      var sb = new StringBuilder();
-      sb.AppendLine(".data");
-      sb.AppendLine("heap: .space 4096"); // Reserve 4096 bytes for heap 
-      sb.AppendLine(".text");
-      sb.AppendLine(".global _start");
-      sb.AppendLine("_start:");
-      sb.AppendLine("    adr x10, heap"); // Load address of heap into x10
-      
-      // Agregar las instrucciones principales
-      foreach (var instruction in instructions)
-      {
-          sb.AppendLine(instruction);
-      }
+    public override string ToString()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine(".data");
+        sb.AppendLine("heap: .space 4096"); // Reserve 4096 bytes for heap 
+        sb.AppendLine(".text");
+        sb.AppendLine(".global _start");
+        sb.AppendLine("_start:");
+        sb.AppendLine("    adr x10, heap"); // Load address of heap into x10
+         
 
-      // Agregar las funciones
-      sb.AppendLine("\n// Functions");
-      foreach (var instruction in funcInstructions)
-      {
-          sb.AppendLine(instruction);
-      }
 
-      sb.AppendLine("\n// Standard Library");
-      sb.AppendLine(stdlib.GetFunctionDefinitions());
-      
-      return sb.ToString();
-  }
+        Endprogram(); // Call Endprogram at the end of the program
+        foreach (var instruction in instructions)
+        {
+            sb.AppendLine(instruction);
+        }
+
+        sb.AppendLine("\n\n\n // Foreign functions");
+        funcInstructions.ForEach(i => sb.AppendLine(i)); // Add foreign functions at the end
+        
+        sb.AppendLine("\n\n\n // Standard Library Functions");
+        sb.AppendLine(stdlib.GetFunctionDefinitions()); // Add standard library functions at the end
+        return sb.ToString();
+    }
+
 
   //relacionales
 public void Cmp(string rs1, string rs2)

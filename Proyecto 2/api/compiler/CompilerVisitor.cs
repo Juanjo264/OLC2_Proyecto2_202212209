@@ -52,9 +52,14 @@ public class CompilerVisitor : LanguageBaseVisitor<Object?>
     
     private String? insideFunction = null;
     private int framePointerOffset = 0;
+    public string output = "";
+
     public CompilerVisitor()
     {
     }
+
+    public SymbolTable symbolTable = new SymbolTable();
+        public static SymbolTable GlobalSymbolTable = new SymbolTable();
 
     public override Object? VisitProgram(LanguageParser.ProgramContext context)
     {
@@ -284,9 +289,7 @@ public override object? VisitAddSub(LanguageParser.AddSubContext context)
             c.Comment("Copying first string to heap");
             c.Mov(Register.X2, Register.X1); // X2 = dirección del primer string
             c.SetLabel(copyFirstLabel);
-            // Cargar byte del string (cuidado: usar LDRB para cargar un solo byte)
             c.instructions.Add("LDRB w3, [x2]");
-            // Verificar si es 0 (fin del string)
             c.Cbz("w3", copySecondLabel);
             // Guardar byte en el heap
             c.Strb("w3", Register.HP);
@@ -297,16 +300,13 @@ public override object? VisitAddSub(LanguageParser.AddSubContext context)
             c.B(copyFirstLabel);
         }
         
-        // Copiar el segundo string (derecho) al heap
         c.SetLabel(copySecondLabel);
         if (rightType == StackObject.StackObjectType.String)
         {
             c.Comment("Copying second string to heap");
             c.Mov(Register.X2, Register.X0); // X2 = dirección del segundo string
             c.SetLabel(continueSecondLabel);
-            // Cargar byte del string (usar LDRB para cargar un solo byte)
             c.instructions.Add("LDRB w3, [x2]");
-            // Verificar si es 0 (fin del string)
             c.Cbz("w3", endLabel);
             // Guardar byte en el heap
             c.Strb("w3", Register.HP);
@@ -323,7 +323,6 @@ public override object? VisitAddSub(LanguageParser.AddSubContext context)
         c.Strb("w3", Register.HP);
         c.Add(Register.HP, Register.HP, "1");
         
-        // El resultado es la dirección del heap donde empezó el string concatenado
         c.Pop(Register.X0);
         c.Push(Register.X0);
         c.PushObject(c.StringObject());
@@ -331,11 +330,10 @@ public override object? VisitAddSub(LanguageParser.AddSubContext context)
         return null;
     }
     
-    // Manejo de operaciones con flotantes
     else if (leftType == StackObject.StackObjectType.Float || rightType == StackObject.StackObjectType.Float)
     {
         if (leftType != StackObject.StackObjectType.Float) 
-            c.Scvtf(Register.D1, Register.X1); // Convierte entero a flotante
+            c.Scvtf(Register.D1, Register.X1); 
         if (rightType != StackObject.StackObjectType.Float) 
             c.Scvtf(Register.D0, Register.X0); // Convierte entero a flotante
 
@@ -473,7 +471,7 @@ public override Object? VisitDeclaracionVar(LanguageParser.DeclaracionVarContext
             default:
                 throw new Exception($"Tipo no soportado para inicialización: {tipoTexto}");
         }
-
+        
         c.PushConstant(valorPorDefecto, valor);
     }
 
@@ -494,6 +492,7 @@ public override Object? VisitDeclaracionVar(LanguageParser.DeclaracionVarContext
 
     c.TagObject(varName);
     c.Comment($"Variable {varName} registered in stack");
+        GlobalSymbolTable.AddSymbol(varName, "Variable", valorPorDefecto.Type.ToString(), "Global", context.Start.Line, context.Start.Column);
 
     return null;
 }
@@ -550,10 +549,8 @@ public override Object? VisitAssign(LanguageParser.AssignContext context)
         c.Str(Register.X0, Register.X1); // almacena el valor
     }
 
-    // Actualiza el tipo en la pila virtual
     varObject.Type = valueObject.Type;
-
-    // Opcional: empujar valor para compatibilidad con expresiones
+    //****
     c.Push(Register.X0);
     c.PushObject(c.CloneObject(varObject));
 
@@ -599,7 +596,7 @@ public override Object? VisitCaracterExpresion(LanguageParser.CaracterExpresionC
     c.Comment($"Creating character literal: '{character}' (ASCII: {charValue})");
     
     // Create character object
-    var charObj = c.IntObject(); // Podemos usar IntObject y cambiar el tipo después
+    var charObj = c.IntObject(); 
     charObj.Type = StackObject.StackObjectType.Char;
     
     // Push the constant to the stack
@@ -616,9 +613,8 @@ public override Object? VisitOperadorNegacion(LanguageParser.OperadorNegacionCon
 
     if (value.Type == StackObject.StackObjectType.Int)
     {
-        // Conviértelo a booleano si es 0 o 1
         c.Cmp(Register.X0, "0");
-        c.Cset(Register.X0, "EQ"); // X0 = 1 si era 0, X0 = 0 si era 1
+        c.Cset(Register.X0, "EQ");
         c.Push(Register.X0);
         c.PushObject(c.BoolObject());
         return null;
@@ -645,7 +641,6 @@ public override object? VisitRelational(LanguageParser.RelationalContext context
     Visit(context.expr(0));
     Visit(context.expr(1));
 
-    // Verificamos si alguno de los operandos es float
     var isRightDouble = c.TopObject().Type == StackObject.StackObjectType.Float;
     var right = c.PopObject(isRightDouble ? Register.D0 : Register.X0);
 
@@ -654,16 +649,13 @@ public override object? VisitRelational(LanguageParser.RelationalContext context
 
     //Console.WriteLine($"Relational operands: Left={left.Type}, Right={right.Type}");
 
-    // Declaramos etiquetas una sola vez
     var trueLabel = c.GetLabel();
     var endLabel = c.GetLabel();
 
-    // Comparación con floats
     if (isLeftDouble || isRightDouble)
     {
         c.Comment("Float comparison");
         
-        // Convertir left a float si es necesario
         if (left.Type == StackObject.StackObjectType.Int)
         {
             c.Comment("Converting left operand from int to float");
@@ -672,11 +664,9 @@ public override object? VisitRelational(LanguageParser.RelationalContext context
         else if (left.Type == StackObject.StackObjectType.Float)
         {
             c.Comment("Left operand is already float");
-            // Asegura que el valor esté en D1
             c.Fmov(Register.D1, Register.D1);
         }
 
-        // Convertir right a float si es necesario
         if (right.Type == StackObject.StackObjectType.Int)
         {
             c.Comment("Converting right operand from int to float");
@@ -685,7 +675,6 @@ public override object? VisitRelational(LanguageParser.RelationalContext context
         else if (right.Type == StackObject.StackObjectType.Float)
         {
             c.Comment("Right operand is already float");
-            // Asegura que el valor esté en D0
             c.Fmov(Register.D0, Register.D0);
         }
 
@@ -715,19 +704,19 @@ public override object? VisitRelational(LanguageParser.RelationalContext context
                 throw new Exception($"Operador relacional no válido con float: {op}");
         }
 
-        // Caso falso
+       
         c.Comment("False case - set X0 to 0");
         c.Mov(Register.X0, 0);
         c.Push(Register.X0);
         c.B(endLabel);
         
-        // Caso verdadero
+       
         c.SetLabel(trueLabel);
         c.Comment("True case - set X0 to 1");
         c.Mov(Register.X0, 1);
         c.Push(Register.X0);
         
-        // Final común
+      
         c.SetLabel(endLabel);
         c.PushObject(c.BoolObject());
         
@@ -735,7 +724,6 @@ public override object? VisitRelational(LanguageParser.RelationalContext context
         return null;
     }
 
-    // Comparación con enteros
     c.Comment($"Integer comparison with {op}");
     c.Cmp(Register.X1, Register.X0);
 
@@ -825,8 +813,7 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
         c.instructions.Add("CMP W2, W3");
         c.instructions.Add("BNE " + diffLabel);
         
-        // Si son iguales, comprobar si es fin de string
-        c.instructions.Add("CBZ W2, " + trueLabel); // Si llegamos al final (byte 0) y todo coincide
+        c.instructions.Add("CBZ W2, " + trueLabel); 
         
         // Avanzar al siguiente carácter
         c.instructions.Add("ADD X0, X0, #1");
@@ -838,7 +825,6 @@ public override object? VisitEqualitys(LanguageParser.EqualitysContext context)
         c.instructions.Add("MOV X0, #0");
         c.B(endLabel);
         
-        // Si son iguales (llegamos al final), retornar true
         c.SetLabel(trueLabel);
         c.instructions.Add("MOV X0, #1");
         
@@ -1123,7 +1109,6 @@ public override Object? VisitSwitchInstruccion(LanguageParser.SwitchInstruccionC
             Visit(inst);
         }
         
-        // Al final de cada case, saltar al final del switch
         c.B(endLabel);
         
         // Etiqueta para el siguiente caso
@@ -1294,7 +1279,7 @@ public override Object? VisitBreakInstruccion(LanguageParser.BreakInstruccionCon
         c.Comment("Return statement");
         if (context.expr() == null)
         {
-            c.Br(returnLabel); // Jump to the return label
+            c.B(returnLabel); // Jump to the return label
             return null;
 
         }
@@ -1493,9 +1478,7 @@ public override Object? VisitCallee(LanguageParser.CalleeContext context)
     c.Mov(Register.X0, stackelementSize * frameSize);
     c.Add(Register.SP, Register.SP, Register.X0);
 
-    // IMPORTANTE: Limpiar otros registros que podrían causar contaminación
-    // Esto es crítico para evitar que valores residuales afecten a otras variables
-    c.Mov(Register.X5, Register.XZR); // Limpiar X5 que podría estar causando el problema
+    c.Mov(Register.X5, Register.XZR);
     c.Mov(Register.X6, Register.XZR); // Limpiar X6
     c.Mov(Register.X7, Register.XZR); // Limpiar X7
 
@@ -1515,7 +1498,6 @@ public override Object? VisitCallee(LanguageParser.CalleeContext context)
     return null;
 }
 
-// 2. Modificación en VisitFuncdlc - mejorando la gestión del retorno
 
 public override Object? VisitFuncdlc(LanguageParser.FuncdlcContext context)
 {
@@ -1615,12 +1597,9 @@ public override Object? VisitFuncdlc(LanguageParser.FuncdlcContext context)
     // Punto de retorno
     c.SetLabel(returnLabel);
 
-    // Recuperar dirección de retorno
     c.Add(Register.X0, Register.FP, Register.XZR);
     c.Ldr(Register.LR, Register.X0);
-    
-    // IMPORTANTE: Asegurar que los registros estén limpios antes de retornar
-    // Esto ayuda a evitar contaminación entre llamadas
+
     c.Mov(Register.X5, Register.XZR);
     c.Mov(Register.X6, Register.XZR);
     c.Mov(Register.X7, Register.XZR);
@@ -1636,7 +1615,6 @@ public override Object? VisitFuncdlc(LanguageParser.FuncdlcContext context)
         c.PopObject();
     }
 
-    // Guardar instrucciones de la función
     foreach (var instruccion in c.instructions)
     {
         c.funcInstructions.Add(instruccion);
@@ -1646,6 +1624,10 @@ public override Object? VisitFuncdlc(LanguageParser.FuncdlcContext context)
     c.instructions = prevInstruction;
     insideFunction = null;
     c.Comment($"End of function {funcName}");
+            int line = context.Start.Line;
+        int column = context.Start.Column;
+
+    GlobalSymbolTable.AddSymbol(funcName, "Function", funcType.ToString(), "Global", line, column);
 
     return null;
 }

@@ -77,5 +77,45 @@ public override object VisitDeclaracionImplicita(LanguageParser.DeclaracionImpli
     Visit(context.instruccion()); // Visitar la instrucción dentro del bloque for
     return null;
   } 
+
+  public override object VisitSwitchInstruccion(LanguageParser.SwitchInstruccionContext context)
+{
+    foreach (var caso in context.cases())
+    {
+        Visit(caso);
+    }
+
+    if (context.defaultCase() != null)
+    {
+        Visit(context.defaultCase());
+    }
+    return null;
+}
+
+public override object VisitCases(LanguageParser.CasesContext context)
+{
+    foreach (var inst in context.listainstrucciones())
+    {
+        Visit(inst);
+    }
+    return null;
+}
+
+public override object VisitDefaultCase(LanguageParser.DefaultCaseContext context)
+{
+    foreach (var inst in context.listainstrucciones())
+    {
+        Visit(inst);
+    }
+    return null;
+}
+
+public override object VisitForCondicion(LanguageParser.ForCondicionContext context)
+{
+    Visit(context.expr()); // condición
+    Visit(context.instruccion()); // cuerpo
+    return null;
+}
+
 }
 
